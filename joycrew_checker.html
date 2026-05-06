@@ -337,23 +337,26 @@ function updateCrewBanner(connected, count = 0) {
 }
 
 // ── JSON file parsing ──
+// followers_1.json: 배열, 각 entry의 string_list_data[].value에 계정명
+// following.json:   { relationships_following: [...] }, 각 entry의 title에 계정명 (value 없음)
 function extractUsernames(data) {
   const users = new Set();
-  const parseEntries = entries => {
-    if (!Array.isArray(entries)) return;
-    entries.forEach(entry => {
-      if (Array.isArray(entry?.string_list_data))
-        entry.string_list_data.forEach(d => {
-          const u = d?.value?.trim().replace(/^@/, '').toLowerCase();
-          if (u && !u.startsWith('http') && !u.includes(' ')) users.add(u);
-        });
-    });
+  const add = str => {
+    if (!str || typeof str !== 'string') return;
+    const u = str.trim().replace(/^@/, '').toLowerCase();
+    if (u && !u.includes(' ')) users.add(u);
   };
-  if (Array.isArray(data)) {
-    parseEntries(data); // followers_1.json: 최상위 배열
-  } else if (data && typeof data === 'object') {
-    Object.values(data).forEach(v => { if (Array.isArray(v)) parseEntries(v); }); // following.json: { relationships_following: [...] }
-  }
+  const parseEntry = entry => {
+    if (!entry) return;
+    let found = false;
+    if (Array.isArray(entry.string_list_data)) {
+      entry.string_list_data.forEach(d => { if (d?.value) { add(d.value); found = true; } });
+    }
+    if (!found && entry.title) add(entry.title); // following.json 형식
+  };
+  const parseList = arr => { if (Array.isArray(arr)) arr.forEach(parseEntry); };
+  if (Array.isArray(data)) parseList(data);
+  else if (data && typeof data === 'object') Object.values(data).forEach(v => parseList(v));
   return users;
 }
 
