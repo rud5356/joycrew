@@ -197,7 +197,7 @@ tr:hover td { background: var(--surface2); }
       <div class="filter-row">
         <button class="ftab active" onclick="setTab('all')">전체 <span class="cnt cnt-d" id="t-all">0</span></button>
         <button class="ftab" onclick="setTab('notback')">맞팔 안 함 <span class="cnt cnt-r" id="t-notback">0</span></button>
-        <button class="ftab" onclick="setTab('notfollowing')">내가 안 팔로우 <span class="cnt cnt-b" id="t-notfollowing">0</span></button>
+        <button class="ftab" onclick="setTab('notfollowing')">팔로우 안 함 <span class="cnt cnt-b" id="t-notfollowing">0</span></button>
         <button class="ftab" onclick="setTab('mutual')">맞팔 <span class="cnt cnt-g" id="t-mutual">0</span></button>
         <button class="ftab ftab-crew" onclick="setTab('crew')">💜 쪼이크루 <span class="cnt cnt-c" id="t-crew">0</span></button>
       </div>
@@ -230,32 +230,14 @@ tr:hover td { background: var(--surface2); }
   <div class="page" id="page-sheets">
 
     <div class="card">
-      <div class="card-title">📋 쪼이크루 목록 관리 방법</div>
+      <div class="card-title">📋 쪼이크루 목록 관리</div>
       <div class="step-row">
-        <span class="step-badge">01</span>
-        <span>같은 폴더의 <code>joycrew.csv</code> 파일을 텍스트 편집기로 열기</span>
+        <span>아래 링크에서 <code>joycrew.csv</code>를 직접 편집할 수 있어요. 계정명을 한 줄에 하나씩, @ 없이 입력하세요.</span>
       </div>
-      <div class="step-row">
-        <span class="step-badge">02</span>
-        <span>
-          계정명 추가/삭제 — 한 줄에 하나씩, @ 없이<br>
-          <span style="font-size:12px;color:var(--text3);">ttoktti_kim<br>soosoo_1921<br>wonday_oneday<br>...</span>
-        </span>
-      </div>
-      <div class="step-row">
-        <span class="step-badge">03</span>
-        <span>저장 후 아래 <code>다시 불러오기</code> 버튼 클릭!</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📊 현재 불러온 쪼이크루</div>
-      <div id="connect-status" style="margin-bottom:12px;"></div>
-      <button class="btn btn-crew" onclick="loadCrewFromCsv(true)">💜 joycrew.csv 다시 불러오기</button>
-      <div id="crew-preview-wrap" style="display:none;margin-top:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:4px;">불러온 계정 목록</div>
-        <div class="crew-chips" id="crew-chips"></div>
-      </div>
+      <a class="btn btn-crew" href="https://github.com/rud5356/joycrew/edit/master/joycrew.csv" target="_blank" style="margin-top:8px;display:inline-flex;">
+        💜 joycrew.csv 편집하기 ↗
+      </a>
+      <div class="hint" style="margin-top:12px;">편집 후 저장(커밋)하면 페이지 새로고침 시 자동 반영돼요.</div>
     </div>
 
   </div>
@@ -283,10 +265,7 @@ function goPage(page) {
 }
 
 // ── joycrew.csv ──
-async function loadCrewFromCsv(showStatus = true) {
-  const statusEl = document.getElementById('connect-status');
-  if (showStatus) statusEl.innerHTML = '<span class="pill pill-loading">⏳ 불러오는 중...</span>';
-
+async function loadCrewFromCsv() {
   try {
     const res = await fetch('./joycrew.csv');
     if (!res.ok) throw new Error('fetch failed');
@@ -297,16 +276,6 @@ async function loadCrewFromCsv(showStatus = true) {
       .filter(u => u && u.length > 1 && !u.includes(' ') && u !== 'undefined');
 
     crewSet = new Set(accounts);
-
-    if (showStatus) {
-      statusEl.innerHTML = `<span class="pill pill-ok">✅ ${accounts.length}명 불러옴</span>`;
-      const wrap = document.getElementById('crew-preview-wrap');
-      const chips = document.getElementById('crew-chips');
-      wrap.style.display = 'block';
-      chips.innerHTML = accounts.slice(0, 80).map(u => `<span class="crew-chip">@${u}</span>`).join('')
-        + (accounts.length > 80 ? `<span class="crew-chip" style="color:var(--text3)">+${accounts.length-80}명</span>` : '');
-    }
-
     updateCrewBanner(true, accounts.length);
 
     if (document.getElementById('result-section').style.display !== 'none') {
@@ -316,15 +285,12 @@ async function loadCrewFromCsv(showStatus = true) {
     }
 
   } catch(e) {
-    if (showStatus) {
-      statusEl.innerHTML = '<span class="pill pill-err">❌ joycrew.csv를 불러오지 못했어요. 웹서버를 통해 열어주세요.</span>';
-    }
     updateCrewBanner(false);
   }
 }
 
 async function refreshCrew() {
-  await loadCrewFromCsv(false);
+  await loadCrewFromCsv();
   if (document.getElementById('result-section').style.display !== 'none') {
     rebuildRows();
     renderTable();
@@ -341,7 +307,7 @@ function updateCrewBanner(connected, count = 0) {
   if (!banner) return;
   if (connected && count > 0) {
     banner.className = 'banner banner-green';
-    banner.innerHTML = `<span>💜 쪼이크루 ${count}명 연동됨 · 구글 시트 수정 후 새로고침하면 반영돼요</span>
+    banner.innerHTML = `<span>💜 쪼이크루 ${count}명 연동됨</span>
       <button class="btn btn-secondary" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">설정 보기</button>`;
   } else {
     banner.className = 'banner banner-purple';
@@ -353,18 +319,21 @@ function updateCrewBanner(connected, count = 0) {
 // ── JSON file parsing ──
 function extractUsernames(data) {
   const users = new Set();
-  function walk(obj) {
-    if (!obj) return;
-    if (Array.isArray(obj)) { obj.forEach(walk); return; }
-    if (typeof obj === 'object') {
-      if (obj.string_list_data && Array.isArray(obj.string_list_data))
-        obj.string_list_data.forEach(d => { if (d.value) users.add(d.value.toLowerCase()); });
-      if (obj.value && typeof obj.value === 'string' && obj.value.length > 0 && !obj.value.startsWith('http'))
-        users.add(obj.value.toLowerCase());
-      Object.values(obj).forEach(walk);
-    }
+  const parseEntries = entries => {
+    if (!Array.isArray(entries)) return;
+    entries.forEach(entry => {
+      if (Array.isArray(entry?.string_list_data))
+        entry.string_list_data.forEach(d => {
+          const u = d?.value?.trim().replace(/^@/, '').toLowerCase();
+          if (u && !u.startsWith('http') && !u.includes(' ')) users.add(u);
+        });
+    });
+  };
+  if (Array.isArray(data)) {
+    parseEntries(data); // followers_1.json: 최상위 배열
+  } else if (data && typeof data === 'object') {
+    Object.values(data).forEach(v => { if (Array.isArray(v)) parseEntries(v); }); // following.json: { relationships_following: [...] }
   }
-  walk(data);
   return users;
 }
 
@@ -470,7 +439,7 @@ function renderTable() {
 
   const si = {
     notback:     { label:'맞팔 안 함',    cls:'b-notback' },
-    notfollowing:{ label:'내가 안 팔로우', cls:'b-notfollowing' },
+    notfollowing:{ label:'팔로우 안 함',   cls:'b-notfollowing' },
     mutual:      { label:'맞팔 ✓',        cls:'b-mutual' },
   };
   tbody.innerHTML = rows.map((r, i) => {
