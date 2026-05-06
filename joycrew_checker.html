@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🩷 쪼이크루 맞팔 체커</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #fdf6fb;
+  --surface: #ffffff;
+  --surface2: #fef0f8;
+  --border: #f0d9ee;
+  --accent: #e879b0;
+  --accent-soft: #fce7f5;
+  --green: #34d399;
+  --green-soft: #d1fae5;
+  --blue: #60a5fa;
+  --blue-soft: #dbeafe;
+  --red: #f87171;
+  --red-soft: #fee2e2;
+  --crew: #c084fc;
+  --crew-soft: #f3e8ff;
+  --text: #3d2952;
+  --text2: #9d7eb5;
+  --text3: #c4a8d8;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 16px rgba(200,120,200,0.08);
+}
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 16px 60px; }
+.container { max-width: 860px; margin: 0 auto; }
+
+.header { text-align: center; margin-bottom: 28px; }
+.logo { font-size: 30px; margin-bottom: 6px; }
+.title { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+.subtitle { font-size: 13px; color: var(--text2); }
+
+.nav { display: flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: 50px; padding: 5px; margin-bottom: 24px; gap: 4px; box-shadow: var(--shadow); }
+.nav-btn { flex: 1; border: none; background: transparent; padding: 9px 16px; border-radius: 50px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; }
+.nav-btn:hover { color: var(--accent); }
+.nav-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(232,121,176,0.3); }
+
+.card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.card-title { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+.step-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text2); line-height: 1.65; margin-bottom: 10px; }
+.step-badge { background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; flex-shrink: 0; margin-top: 2px; }
+code { background: var(--accent-soft); color: var(--accent); padding: 1px 7px; border-radius: 6px; font-size: 12px; }
+a { color: var(--accent); }
+.hint { font-size: 12px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+
+.url-row { display: flex; gap: 8px; align-items: center; }
+.url-input { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--text); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; transition: border-color 0.15s; min-width: 0; }
+.url-input:focus { border-color: var(--crew); }
+.url-input::placeholder { color: var(--text3); font-size: 12px; }
+
+.btn { border: none; border-radius: 50px; padding: 9px 20px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.18s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 10px rgba(232,121,176,0.25); }
+.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: var(--surface2); color: var(--text2); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-crew { background: var(--crew-soft); color: var(--crew); border: 1.5px solid #e9d5ff; }
+.btn-crew:hover { background: #e9d5ff; }
+.btn-full { width: 100%; justify-content: center; margin-top: 12px; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 50px; font-size: 12px; font-weight: 600; }
+.pill-ok { background: var(--green-soft); color: #059669; }
+.pill-err { background: var(--red-soft); color: var(--red); }
+.pill-loading { background: #fef3c7; color: #d97706; }
+
+.crew-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-height: 160px; overflow-y: auto; }
+.crew-chip { background: var(--crew-soft); color: var(--crew); border: 1px solid #e9d5ff; border-radius: 50px; padding: 2px 11px; font-size: 12px; font-weight: 500; }
+
+.banner { border-radius: var(--radius-sm); padding: 11px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; flex-wrap: wrap; }
+.banner-purple { background: var(--crew-soft); border: 1.5px solid #e9d5ff; color: var(--crew); }
+.banner-green { background: var(--green-soft); border: 1.5px solid #a7f3d0; color: #059669; }
+.banner-yellow { background: #fef3c7; border: 1.5px solid #fde68a; color: #d97706; }
+
+.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 38px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.drop-zone:hover, .drop-zone.dragging { border-color: var(--accent); background: var(--accent-soft); }
+.drop-emoji { font-size: 34px; margin-bottom: 8px; }
+.drop-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.drop-sub { font-size: 13px; color: var(--text2); }
+.file-chip { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 20px; padding: 3px 12px; }
+input[type="file"] { display: none; }
+.privacy { font-size: 11px; color: var(--text3); text-align: center; margin-top: 10px; }
+
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 8px; text-align: center; box-shadow: var(--shadow); }
+.stat-num { font-size: 22px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-lbl { font-size: 11px; color: var(--text2); }
+
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.ftab { padding: 5px 14px; border-radius: 50px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text2); font-size: 12px; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
+.ftab:hover { border-color: var(--accent); color: var(--accent); }
+.ftab.active { background: var(--accent-soft); border-color: #f9a8d4; color: var(--accent); font-weight: 700; }
+.ftab-crew.active { background: var(--crew-soft); border-color: #e9d5ff; color: var(--crew); }
+.cnt { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 20px; }
+.cnt-d { background: var(--accent-soft); color: var(--accent); }
+.cnt-r { background: var(--red-soft); color: var(--red); }
+.cnt-b { background: var(--blue-soft); color: var(--blue); }
+.cnt-g { background: var(--green-soft); color: var(--green); }
+.cnt-c { background: var(--crew-soft); color: var(--crew); }
+
+.sub-filters { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+.check-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); cursor: pointer; user-select: none; }
+.check-label input { accent-color: var(--crew); width: 14px; height: 14px; }
+.check-label:hover { color: var(--crew); }
+
+.search-wrap { position: relative; margin-bottom: 12px; }
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--text3); pointer-events: none; }
+.search-input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: 50px; padding: 9px 14px 9px 38px; color: var(--text); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; transition: border-color 0.15s; }
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus { border-color: var(--accent); }
+
+.table-wrap { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--surface2); }
+th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; color: var(--text3); border-bottom: 1.5px solid var(--border); }
+td { padding: 9px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.username { font-weight: 600; color: var(--text); }
+.ig-link { color: var(--accent); text-decoration: none; font-size: 12px; }
+.ig-link:hover { text-decoration: underline; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; }
+.b-notback { background: var(--red-soft); color: var(--red); }
+.b-notfollowing { background: var(--blue-soft); color: var(--blue); }
+.b-mutual { background: var(--green-soft); color: var(--green); }
+.crew-tag { background: var(--crew-soft); color: var(--crew); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+.num-cell { color: var(--text3); font-size: 12px; }
+.empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
+
+.page { display: none; }
+.page.visible { display: block; }
+
+@media (max-width: 600px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .url-row { flex-direction: column; }
+  .url-input { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">🩷</div>
+    <div class="title">쪼이크루 맞팔 체커</div>
+    <div class="subtitle">팔로워 · 팔로잉 · 쪼이크루 한눈에 비교</div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="goPage('checker')">🔍 맞팔 체커</button>
+    <button class="nav-btn" onclick="goPage('sheets')">💜 쪼이크루 연동</button>
+  </div>
+
+  <!-- ===== 맞팔 체커 탭 ===== -->
+  <div class="page visible" id="page-checker">
+
+    <div id="crew-banner"></div>
+
+    <div class="card">
+      <div class="card-title">📂 인스타 JSON 파일 업로드</div>
+      <div class="step-row"><span class="step-badge">01</span><span>인스타그램 → 프로필 → 메뉴(☰) → 계정센터 → 내 정보 및 권한 → 내 정보 다운로드</span></div>
+      <div class="step-row"><span class="step-badge">02</span><span>형식 <code>JSON</code> 선택 → 요청 → 다운로드 후 압축 해제</span></div>
+      <div class="step-row"><span class="step-badge">03</span><span><code>connections/followers_and_following/</code> 폴더의 <code>followers_1.json</code> + <code>following.json</code> 두 파일 업로드</span></div>
+    </div>
+
+    <div id="upload-section">
+      <div class="drop-zone" id="drop-zone"
+        onclick="document.getElementById('json-file').click()"
+        ondragover="event.preventDefault();this.classList.add('dragging')"
+        ondragleave="this.classList.remove('dragging')"
+        ondrop="handleDrop(event)">
+        <div class="drop-emoji">📂</div>
+        <div class="drop-title">JSON 파일을 여기에 드래그하거나 클릭</div>
+        <div class="drop-sub">followers_1.json + following.json 동시 선택</div>
+        <div id="file-chip" class="file-chip" style="display:none;"></div>
+      </div>
+      <input type="file" id="json-file" accept=".json" multiple onchange="handleFileSelect(this.files)">
+      <button class="btn btn-primary btn-full" id="btn-analyze" disabled onclick="analyze()">분석하기 🔍</button>
+      <p class="privacy">🔒 모든 데이터는 내 브라우저 안에서만 처리돼요</p>
+    </div>
+
+    <div id="result-section" style="display:none;">
+      <div class="stats">
+        <div class="stat-card"><div class="stat-num" style="color:var(--accent)" id="s-followers">0</div><div class="stat-lbl">팔로워</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--blue)" id="s-following">0</div><div class="stat-lbl">팔로잉</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--red)" id="s-notback">0</div><div class="stat-lbl">맞팔 안 함</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="s-mutual">0</div><div class="stat-lbl">맞팔</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--crew)" id="s-crew">0</div><div class="stat-lbl">쪼이크루</div></div>
+      </div>
+
+      <div class="filter-row">
+        <button class="ftab active" onclick="setTab('all')">전체 <span class="cnt cnt-d" id="t-all">0</span></button>
+        <button class="ftab" onclick="setTab('notback')">맞팔 안 함 <span class="cnt cnt-r" id="t-notback">0</span></button>
+        <button class="ftab" onclick="setTab('notfollowing')">내가 안 팔로우 <span class="cnt cnt-b" id="t-notfollowing">0</span></button>
+        <button class="ftab" onclick="setTab('mutual')">맞팔 <span class="cnt cnt-g" id="t-mutual">0</span></button>
+        <button class="ftab ftab-crew" onclick="setTab('crew')">💜 쪼이크루 <span class="cnt cnt-c" id="t-crew">0</span></button>
+      </div>
+
+      <div class="sub-filters">
+        <label class="check-label"><input type="checkbox" id="chk-crew-only" onchange="renderTable()"> 쪼이크루만 보기</label>
+        <label class="check-label"><input type="checkbox" id="chk-crew-notback" onchange="renderTable()"> 쪼이크루 중 맞팔 안 한 계정만</label>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search" type="text" placeholder="계정 검색..." oninput="renderTable()">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>계정</th><th>상태</th><th>쪼이크루</th><th>바로가기</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="empty" style="display:none;">🌸 검색 결과가 없어요</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="resetApp()">← 다시 업로드</button>
+        <button class="btn btn-crew" onclick="refreshCrew()">💜 쪼이크루 새로고침</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 쪼이크루 연동 탭 ===== -->
+  <div class="page" id="page-sheets">
+
+    <div class="card">
+      <div class="card-title">📋 구글 시트 준비 방법 <span style="font-size:11px;font-weight:400;color:var(--text3);">처음 한 번만!</span></div>
+      <div class="step-row">
+        <span class="step-badge">01</span>
+        <span><a href="https://sheets.new" target="_blank">sheets.new</a> 에서 새 구글 시트 만들기</span>
+      </div>
+      <div class="step-row">
+        <span class="step-badge">02</span>
+        <span>
+          A열에 쪼이크루 계정명 입력 — 한 줄에 하나씩, @ 없이<br>
+          <span style="font-size:12px;color:var(--text3);">ttoktti_kim<br>soosoo_1921<br>wonday_oneday<br>...</span>
+        </span>
+      </div>
+      <div class="step-row">
+        <span class="step-badge">03</span>
+        <span>우상단 <code>공유</code> 버튼 → <code>링크가 있는 모든 사용자</code> → <code>뷰어</code> 설정 후 링크 복사</span>
+      </div>
+      <div class="step-row">
+        <span class="step-badge">04</span>
+        <span>아래에 URL 붙여넣고 연결!</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔗 구글 시트 URL 입력</div>
+      <div class="url-row">
+        <input class="url-input" id="sheets-url" type="text"
+          placeholder="https://docs.google.com/spreadsheets/d/...">
+        <button class="btn btn-crew" onclick="connectSheets()">연결하기 💜</button>
+      </div>
+      <div class="hint">💡 URL은 자동 저장돼요. 다음에 이 파일 열면 바로 연결돼요.</div>
+      <div id="connect-status" style="margin-top:12px;"></div>
+      <div id="crew-preview-wrap" style="display:none;margin-top:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:4px;">불러온 계정 목록</div>
+        <div class="crew-chips" id="crew-chips"></div>
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--surface2);">
+      <div class="card-title">💡 매주 업데이트 방법</div>
+      <div class="step-row" style="margin-bottom:6px;">
+        <span class="step-badge">방법</span>
+        <span>구글 시트에서 계정 추가/삭제 → 저장 → 맞팔 체커 탭에서 <code>쪼이크루 새로고침</code> 버튼 클릭</span>
+      </div>
+      <div class="hint">HTML 파일을 다른 사람과 공유해도, 내 구글 시트가 기준이라 항상 같은 목록으로 비교돼요 🩷</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let crewSet = new Set();
+let followersSet = new Set();
+let followingSet = new Set();
+let allRows = [];
+let currentTab = 'all';
+let pendingData = { followers: null, following: null };
+
+// ── Init ──
+window.onload = () => {
+  const savedUrl = localStorage.getItem('joycrew_sheets_url');
+  if (savedUrl) {
+    document.getElementById('sheets-url').value = savedUrl;
+    loadCrewFromSheets(savedUrl, false);
+  } else {
+    updateCrewBanner(false);
+  }
+};
+
+// ── Page nav ──
+function goPage(page) {
+  document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', ['checker','sheets'][i] === page));
+  document.getElementById('page-checker').classList.toggle('visible', page === 'checker');
+  document.getElementById('page-sheets').classList.toggle('visible', page === 'sheets');
+}
+
+// ── Google Sheets ──
+function sheetUrlToCsv(url) {
+  // Extract sheet ID from various Google Sheets URL formats
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) return null;
+  const id = match[1];
+  // Extract gid if present
+  const gidMatch = url.match(/[#&]gid=(\d+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+}
+
+async function loadCrewFromSheets(url, showStatus = true) {
+  const statusEl = document.getElementById('connect-status');
+  if (showStatus) statusEl.innerHTML = '<span class="pill pill-loading">⏳ 불러오는 중...</span>';
+
+  const csvUrl = sheetUrlToCsv(url);
+  if (!csvUrl) {
+    if (showStatus) statusEl.innerHTML = '<span class="pill pill-err">❌ URL 형식이 올바르지 않아요</span>';
+    return;
+  }
+
+  try {
+    const res = await fetch(csvUrl);
+    if (!res.ok) throw new Error('fetch failed');
+    const text = await res.text();
+
+    // Parse CSV — take first column, clean up
+    const accounts = text.split('\n')
+      .map(line => line.split(',')[0].trim().replace(/^@/, '').replace(/"/g, '').toLowerCase())
+      .filter(u => u && u.length > 1 && !u.includes(' ') && u !== 'undefined');
+
+    crewSet = new Set(accounts);
+    localStorage.setItem('joycrew_sheets_url', url);
+
+    if (showStatus) {
+      statusEl.innerHTML = `<span class="pill pill-ok">✅ ${accounts.length}명 연결됨</span>`;
+      // Show chips preview
+      const wrap = document.getElementById('crew-preview-wrap');
+      const chips = document.getElementById('crew-chips');
+      wrap.style.display = 'block';
+      chips.innerHTML = accounts.slice(0, 80).map(u => `<span class="crew-chip">@${u}</span>`).join('')
+        + (accounts.length > 80 ? `<span class="crew-chip" style="color:var(--text3)">+${accounts.length-80}명</span>` : '');
+    }
+
+    updateCrewBanner(true, accounts.length);
+
+    // If results are showing, re-render
+    if (document.getElementById('result-section').style.display !== 'none') {
+      rebuildRows();
+      renderTable();
+      updateResultCounts();
+    }
+
+  } catch(e) {
+    if (showStatus) {
+      statusEl.innerHTML = '<span class="pill pill-err">❌ 불러오기 실패 — 시트가 공개(뷰어) 설정인지 확인해주세요</span>';
+    }
+    updateCrewBanner(false);
+  }
+}
+
+function connectSheets() {
+  const url = document.getElementById('sheets-url').value.trim();
+  if (!url) return;
+  loadCrewFromSheets(url, true);
+}
+
+async function refreshCrew() {
+  const url = localStorage.getItem('joycrew_sheets_url');
+  if (!url) { goPage('sheets'); return; }
+  await loadCrewFromSheets(url, false);
+  // Re-render table if analysis is shown
+  if (document.getElementById('result-section').style.display !== 'none') {
+    rebuildRows();
+    renderTable();
+    updateResultCounts();
+  }
+  // Brief feedback
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ 새로고침 완료!';
+  setTimeout(() => btn.textContent = orig, 2000);
+}
+
+function updateCrewBanner(connected, count = 0) {
+  const banner = document.getElementById('crew-banner');
+  if (!banner) return;
+  if (connected && count > 0) {
+    banner.className = 'banner banner-green';
+    banner.innerHTML = `<span>💜 쪼이크루 ${count}명 연동됨 · 구글 시트 수정 후 새로고침하면 반영돼요</span>
+      <button class="btn btn-secondary" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">설정 보기</button>`;
+  } else {
+    banner.className = 'banner banner-purple';
+    banner.innerHTML = `<span>💜 쪼이크루 목록을 연동하면 맞팔 분석에 반영돼요!</span>
+      <button class="btn btn-crew" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">연동하기 →</button>`;
+  }
+}
+
+// ── JSON file parsing ──
+function extractUsernames(data) {
+  const users = new Set();
+  function walk(obj) {
+    if (!obj) return;
+    if (Array.isArray(obj)) { obj.forEach(walk); return; }
+    if (typeof obj === 'object') {
+      if (obj.string_list_data && Array.isArray(obj.string_list_data))
+        obj.string_list_data.forEach(d => { if (d.value) users.add(d.value.toLowerCase()); });
+      if (obj.value && typeof obj.value === 'string' && obj.value.length > 0 && !obj.value.startsWith('http'))
+        users.add(obj.value.toLowerCase());
+      Object.values(obj).forEach(walk);
+    }
+  }
+  walk(data);
+  return users;
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragging');
+  processFiles(Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.json')));
+}
+function handleFileSelect(files) { processFiles(Array.from(files)); }
+
+function processFiles(files) {
+  pendingData = { followers: null, following: null };
+  let done = 0;
+  document.getElementById('file-chip').textContent = files.map(f => f.name).join(' + ');
+  document.getElementById('file-chip').style.display = 'inline-block';
+  files.forEach(file => {
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (file.name.toLowerCase().includes('follower')) pendingData.followers = data;
+        else if (file.name.toLowerCase().includes('following')) pendingData.following = data;
+        else { if (!pendingData.followers) pendingData.followers = data; else pendingData.following = data; }
+      } catch { alert('JSON 파싱 오류: ' + file.name); }
+      done++;
+      if (done === files.length)
+        document.getElementById('btn-analyze').disabled = !(pendingData.followers || pendingData.following);
+    };
+    r.readAsText(file);
+  });
+}
+
+function analyze() {
+  followersSet = pendingData.followers ? extractUsernames(pendingData.followers) : new Set();
+  followingSet = pendingData.following ? extractUsernames(pendingData.following) : new Set();
+  rebuildRows();
+  showResults();
+}
+
+function rebuildRows() {
+  const all = new Set([...followersSet, ...followingSet]);
+  allRows = [];
+  all.forEach(user => {
+    const isF = followersSet.has(user), isFg = followingSet.has(user);
+    const status = isF && isFg ? 'mutual' : isFg ? 'notback' : 'notfollowing';
+    allRows.push({ user, status, isCrew: crewSet.has(user) });
+  });
+  allRows.sort((a, b) => {
+    if (a.isCrew !== b.isCrew) return a.isCrew ? -1 : 1;
+    return { notback:0, notfollowing:1, mutual:2 }[a.status] - { notback:0, notfollowing:1, mutual:2 }[b.status];
+  });
+}
+
+function showResults() {
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+  updateResultCounts();
+  setTab('all');
+}
+
+function updateResultCounts() {
+  const nb = allRows.filter(r => r.status === 'notback').length;
+  const nf = allRows.filter(r => r.status === 'notfollowing').length;
+  const mu = allRows.filter(r => r.status === 'mutual').length;
+  const cr = allRows.filter(r => r.isCrew).length;
+  document.getElementById('s-followers').textContent = followersSet.size;
+  document.getElementById('s-following').textContent = followingSet.size;
+  document.getElementById('s-notback').textContent = nb;
+  document.getElementById('s-mutual').textContent = mu;
+  document.getElementById('s-crew').textContent = cr;
+  document.getElementById('t-all').textContent = allRows.length;
+  document.getElementById('t-notback').textContent = nb;
+  document.getElementById('t-notfollowing').textContent = nf;
+  document.getElementById('t-mutual').textContent = mu;
+  document.getElementById('t-crew').textContent = cr;
+}
+
+function setTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.ftab').forEach((el, i) =>
+    el.classList.toggle('active', ['all','notback','notfollowing','mutual','crew'][i] === tab));
+  if (document.getElementById('chk-crew-only')) document.getElementById('chk-crew-only').checked = false;
+  if (document.getElementById('chk-crew-notback')) document.getElementById('chk-crew-notback').checked = false;
+  if (document.getElementById('search')) document.getElementById('search').value = '';
+  renderTable();
+}
+
+function renderTable() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const crewOnly = document.getElementById('chk-crew-only').checked;
+  const crewNotback = document.getElementById('chk-crew-notback').checked;
+  let rows = [...allRows];
+  if (currentTab === 'crew') rows = rows.filter(r => r.isCrew);
+  else if (currentTab !== 'all') rows = rows.filter(r => r.status === currentTab);
+  if (crewOnly) rows = rows.filter(r => r.isCrew);
+  if (crewNotback) rows = rows.filter(r => r.isCrew && r.status === 'notback');
+  if (q) rows = rows.filter(r => r.user.includes(q));
+
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty');
+  if (rows.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const si = {
+    notback:     { label:'맞팔 안 함',    cls:'b-notback' },
+    notfollowing:{ label:'내가 안 팔로우', cls:'b-notfollowing' },
+    mutual:      { label:'맞팔 ✓',        cls:'b-mutual' },
+  };
+  tbody.innerHTML = rows.map((r, i) => {
+    const s = si[r.status];
+    const crewTag = r.isCrew
+      ? `<span class="crew-tag">💜 크루</span>`
+      : `<span style="color:var(--text3);font-size:12px;">—</span>`;
+    return `<tr>
+      <td class="num-cell">${i+1}</td>
+      <td><span class="username">@${r.user}</span></td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td>${crewTag}</td>
+      <td><a class="ig-link" href="https://instagram.com/${r.user}" target="_blank">↗ 방문</a></td>
+    </tr>`;
+  }).join('');
+}
+
+function resetApp() {
+  pendingData = { followers: null, following: null };
+  followersSet = new Set(); followingSet = new Set(); allRows = [];
+  document.getElementById('upload-section').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('btn-analyze').disabled = true;
+  document.getElementById('file-chip').style.display = 'none';
+  document.getElementById('json-file').value = '';
+  currentTab = 'all';
+}
+</script>
+</body>
+</html>
