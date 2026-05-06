@@ -162,7 +162,6 @@ tr:hover td { background: var(--surface2); }
 
   <div class="nav">
     <button class="nav-btn active" onclick="goPage('checker')">🔍 맞팔 체커</button>
-    <button class="nav-btn" onclick="goPage('sheets')">💜 쪼이크루 연동</button>
   </div>
 
   <!-- ===== 맞팔 체커 탭 ===== -->
@@ -250,22 +249,6 @@ tr:hover td { background: var(--surface2); }
         <button class="btn btn-crew" onclick="refreshCrew()">💜 쪼이크루 새로고침</button>
       </div>
     </div>
-  </div>
-
-  <!-- ===== 쪼이크루 연동 탭 ===== -->
-  <div class="page" id="page-sheets">
-
-    <div class="card">
-      <div class="card-title">📋 쪼이크루 목록 관리</div>
-      <div class="step-row">
-        <span>아래 링크에서 <code>joycrew_list.csv</code>를 직접 편집할 수 있어요. 1열은 조이크루, 2열은 부계정, 3열은 운영진, 4열은 언팔필수 목록입니다.</span>
-      </div>
-      <a class="btn btn-crew" href="https://github.com/rud5356/joycrew/edit/master/joycrew_list.csv" target="_blank" style="margin-top:8px;display:inline-flex;">
-        💜 joycrew_list.csv 편집하기 ↗
-      </a>
-      <div class="hint" style="margin-top:12px;">편집 후 저장(커밋)하면 페이지 새로고침 시 자동 반영돼요.</div>
-    </div>
-
   </div>
 </div>
 
