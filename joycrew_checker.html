@@ -230,51 +230,34 @@ tr:hover td { background: var(--surface2); }
   <div class="page" id="page-sheets">
 
     <div class="card">
-      <div class="card-title">📋 구글 시트 준비 방법 <span style="font-size:11px;font-weight:400;color:var(--text3);">처음 한 번만!</span></div>
+      <div class="card-title">📋 쪼이크루 목록 관리 방법</div>
       <div class="step-row">
         <span class="step-badge">01</span>
-        <span><a href="https://sheets.new" target="_blank">sheets.new</a> 에서 새 구글 시트 만들기</span>
+        <span>같은 폴더의 <code>joycrew.csv</code> 파일을 텍스트 편집기로 열기</span>
       </div>
       <div class="step-row">
         <span class="step-badge">02</span>
         <span>
-          A열에 쪼이크루 계정명 입력 — 한 줄에 하나씩, @ 없이<br>
+          계정명 추가/삭제 — 한 줄에 하나씩, @ 없이<br>
           <span style="font-size:12px;color:var(--text3);">ttoktti_kim<br>soosoo_1921<br>wonday_oneday<br>...</span>
         </span>
       </div>
       <div class="step-row">
         <span class="step-badge">03</span>
-        <span>우상단 <code>공유</code> 버튼 → <code>링크가 있는 모든 사용자</code> → <code>뷰어</code> 설정 후 링크 복사</span>
-      </div>
-      <div class="step-row">
-        <span class="step-badge">04</span>
-        <span>아래에 URL 붙여넣고 연결!</span>
+        <span>저장 후 아래 <code>다시 불러오기</code> 버튼 클릭!</span>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">🔗 구글 시트 URL 입력</div>
-      <div class="url-row">
-        <input class="url-input" id="sheets-url" type="text"
-          placeholder="https://docs.google.com/spreadsheets/d/...">
-        <button class="btn btn-crew" onclick="connectSheets()">연결하기 💜</button>
-      </div>
-      <div class="hint">💡 URL은 자동 저장돼요. 다음에 이 파일 열면 바로 연결돼요.</div>
-      <div id="connect-status" style="margin-top:12px;"></div>
+      <div class="card-title">📊 현재 불러온 쪼이크루</div>
+      <div id="connect-status" style="margin-bottom:12px;"></div>
+      <button class="btn btn-crew" onclick="loadCrewFromCsv(true)">💜 joycrew.csv 다시 불러오기</button>
       <div id="crew-preview-wrap" style="display:none;margin-top:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:4px;">불러온 계정 목록</div>
         <div class="crew-chips" id="crew-chips"></div>
       </div>
     </div>
 
-    <div class="card" style="background:var(--surface2);">
-      <div class="card-title">💡 매주 업데이트 방법</div>
-      <div class="step-row" style="margin-bottom:6px;">
-        <span class="step-badge">방법</span>
-        <span>구글 시트에서 계정 추가/삭제 → 저장 → 맞팔 체커 탭에서 <code>쪼이크루 새로고침</code> 버튼 클릭</span>
-      </div>
-      <div class="hint">HTML 파일을 다른 사람과 공유해도, 내 구글 시트가 기준이라 항상 같은 목록으로 비교돼요 🩷</div>
-    </div>
   </div>
 </div>
 
@@ -289,13 +272,7 @@ let pendingData = { followers: null, following: null };
 
 // ── Init ──
 window.onload = () => {
-  const savedUrl = localStorage.getItem('joycrew_sheets_url');
-  if (savedUrl) {
-    document.getElementById('sheets-url').value = savedUrl;
-    loadCrewFromSheets(savedUrl, false);
-  } else {
-    updateCrewBanner(false);
-  }
+  loadCrewFromCsv(false);
 };
 
 // ── Page nav ──
@@ -305,44 +282,24 @@ function goPage(page) {
   document.getElementById('page-sheets').classList.toggle('visible', page === 'sheets');
 }
 
-// ── Google Sheets ──
-function sheetUrlToCsv(url) {
-  // Extract sheet ID from various Google Sheets URL formats
-  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) return null;
-  const id = match[1];
-  // Extract gid if present
-  const gidMatch = url.match(/[#&]gid=(\d+)/);
-  const gid = gidMatch ? gidMatch[1] : '0';
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
-}
-
-async function loadCrewFromSheets(url, showStatus = true) {
+// ── joycrew.csv ──
+async function loadCrewFromCsv(showStatus = true) {
   const statusEl = document.getElementById('connect-status');
   if (showStatus) statusEl.innerHTML = '<span class="pill pill-loading">⏳ 불러오는 중...</span>';
 
-  const csvUrl = sheetUrlToCsv(url);
-  if (!csvUrl) {
-    if (showStatus) statusEl.innerHTML = '<span class="pill pill-err">❌ URL 형식이 올바르지 않아요</span>';
-    return;
-  }
-
   try {
-    const res = await fetch(csvUrl);
+    const res = await fetch('./joycrew.csv');
     if (!res.ok) throw new Error('fetch failed');
     const text = await res.text();
 
-    // Parse CSV — take first column, clean up
     const accounts = text.split('\n')
-      .map(line => line.split(',')[0].trim().replace(/^@/, '').replace(/"/g, '').toLowerCase())
+      .map(line => line.trim().replace(/^@/, '').replace(/"/g, '').toLowerCase())
       .filter(u => u && u.length > 1 && !u.includes(' ') && u !== 'undefined');
 
     crewSet = new Set(accounts);
-    localStorage.setItem('joycrew_sheets_url', url);
 
     if (showStatus) {
-      statusEl.innerHTML = `<span class="pill pill-ok">✅ ${accounts.length}명 연결됨</span>`;
-      // Show chips preview
+      statusEl.innerHTML = `<span class="pill pill-ok">✅ ${accounts.length}명 불러옴</span>`;
       const wrap = document.getElementById('crew-preview-wrap');
       const chips = document.getElementById('crew-chips');
       wrap.style.display = 'block';
@@ -352,7 +309,6 @@ async function loadCrewFromSheets(url, showStatus = true) {
 
     updateCrewBanner(true, accounts.length);
 
-    // If results are showing, re-render
     if (document.getElementById('result-section').style.display !== 'none') {
       rebuildRows();
       renderTable();
@@ -361,29 +317,19 @@ async function loadCrewFromSheets(url, showStatus = true) {
 
   } catch(e) {
     if (showStatus) {
-      statusEl.innerHTML = '<span class="pill pill-err">❌ 불러오기 실패 — 시트가 공개(뷰어) 설정인지 확인해주세요</span>';
+      statusEl.innerHTML = '<span class="pill pill-err">❌ joycrew.csv를 불러오지 못했어요. 웹서버를 통해 열어주세요.</span>';
     }
     updateCrewBanner(false);
   }
 }
 
-function connectSheets() {
-  const url = document.getElementById('sheets-url').value.trim();
-  if (!url) return;
-  loadCrewFromSheets(url, true);
-}
-
 async function refreshCrew() {
-  const url = localStorage.getItem('joycrew_sheets_url');
-  if (!url) { goPage('sheets'); return; }
-  await loadCrewFromSheets(url, false);
-  // Re-render table if analysis is shown
+  await loadCrewFromCsv(false);
   if (document.getElementById('result-section').style.display !== 'none') {
     rebuildRows();
     renderTable();
     updateResultCounts();
   }
-  // Brief feedback
   const btn = event.target;
   const orig = btn.textContent;
   btn.textContent = '✅ 새로고침 완료!';
@@ -399,8 +345,8 @@ function updateCrewBanner(connected, count = 0) {
       <button class="btn btn-secondary" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">설정 보기</button>`;
   } else {
     banner.className = 'banner banner-purple';
-    banner.innerHTML = `<span>💜 쪼이크루 목록을 연동하면 맞팔 분석에 반영돼요!</span>
-      <button class="btn btn-crew" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">연동하기 →</button>`;
+    banner.innerHTML = `<span>💜 joycrew.csv를 찾을 수 없어요. 같은 폴더에 파일이 있는지 확인해주세요.</span>
+      <button class="btn btn-crew" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">확인하기 →</button>`;
   }
 }
 
