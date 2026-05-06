@@ -348,6 +348,7 @@ async function loadCrewFromCsv() {
     }
 
   } catch(e) {
+    console.error('크루 데이터 불러오기 실패:', e);
     updateCrewBanner(false);
   }
 }
@@ -403,6 +404,8 @@ function updateCrewBanner(connected, count = 0, staffCount = 0, unfollowCount = 
     
   } else {
     banner.className = 'banner banner-purple';
+    banner.innerHTML = `<span>💜 쪼이크루 데이터를 불러오지 못했어요</span>
+      <button class="btn btn-crew" style="padding:5px 14px;font-size:12px;" onclick="loadCrewFromCsv()">다시 시도 ↺</button>`;
   }
 }
 
