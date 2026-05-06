@@ -74,7 +74,7 @@ a { color: var(--accent); }
 .crew-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-height: 160px; overflow-y: auto; }
 .crew-chip { background: var(--crew-soft); color: var(--crew); border: 1px solid #e9d5ff; border-radius: 50px; padding: 2px 11px; font-size: 12px; font-weight: 500; }
 
-.banner { border-radius: var(--radius-sm); padding: 11px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; flex-wrap: wrap; }
+.banner { border-radius: var(--radius-sm); padding: 11px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; flex-wrap: wrap; }
 .banner-purple { background: var(--crew-soft); border: 1.5px solid #e9d5ff; color: var(--crew); }
 .banner-green { background: var(--green-soft); border: 1.5px solid #a7f3d0; color: #059669; }
 .banner-yellow { background: #fef3c7; border: 1.5px solid #fde68a; color: #d97706; }
@@ -145,8 +145,37 @@ tr:hover td { background: var(--surface2); }
 .page.visible { display: block; }
 
 @media (max-width: 600px) {
-  .stats { grid-template-columns: repeat(3, 1fr); }
+  body { padding: 16px 12px 48px; }
+
+  .header { margin-bottom: 16px; }
+  .logo { font-size: 24px; }
+  .title { font-size: 18px; }
+
+  .nav-btn { padding: 8px 10px; font-size: 12px; }
+  .card { padding: 14px 14px; }
+  .banner { font-size: 12px; padding: 9px 12px; }
+
   .upload-grid { grid-template-columns: 1fr; }
+  .drop-zone { padding: 20px 12px; }
+  .drop-emoji { font-size: 26px; }
+
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stat-card { padding: 10px 4px; }
+  .stat-num { font-size: 17px; }
+  .stat-lbl { font-size: 10px; }
+
+  .filter-row { gap: 4px; }
+  .ftab { padding: 4px 9px; font-size: 11px; }
+  .cnt { padding: 1px 5px; font-size: 10px; }
+
+  .sub-filters { gap: 10px; }
+  .check-label { font-size: 12px; }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 460px; }
+  th { padding: 8px 10px; font-size: 10px; }
+  td { padding: 7px 10px; font-size: 12px; }
+
   .url-row { flex-direction: column; }
   .url-input { width: 100%; }
 }
@@ -279,7 +308,9 @@ function goPage(page) {
 // ── joycrew_list.csv ──
 async function loadCrewFromCsv() {
   try {
-    const res = await fetch(`./joycrew_list.csv?v=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(
+  'https://docs.google.com/spreadsheets/d/1LyURGAbBDPisAnTYVYRjkbf5j4bnNzjuYHzecXdsp3M/export?format=csv'
+);
     if (!res.ok) throw new Error('fetch failed');
     const text = await res.text();
 
@@ -368,12 +399,10 @@ function updateCrewBanner(connected, count = 0, staffCount = 0, unfollowCount = 
   if (!banner) return;
   if (connected && count > 0) {
     banner.className = 'banner banner-green';
-    banner.innerHTML = `<span>joycrew_list.csv 연동됨: 맞팔체크 ${count}명, 운영진 ${staffCount}명, 언팔필수 ${unfollowCount}명</span>
-      <button class="btn btn-secondary" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">설정 보기</button>`;
+    banner.innerHTML = `<span>맞팔체크 ${count}명, 운영진 ${staffCount}명, 언팔필수 ${unfollowCount}명</span>`;
+    
   } else {
     banner.className = 'banner banner-purple';
-    banner.innerHTML = `<span>joycrew_list.csv를 찾을 수 없어요. 같은 폴더에 파일이 있는지 확인해주세요.</span>
-      <button class="btn btn-crew" style="padding:5px 14px;font-size:12px;" onclick="goPage('sheets')">확인하기 →</button>`;
   }
 }
 
