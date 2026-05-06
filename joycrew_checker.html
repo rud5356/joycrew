@@ -79,8 +79,10 @@ a { color: var(--accent); }
 .banner-green { background: var(--green-soft); border: 1.5px solid #a7f3d0; color: #059669; }
 .banner-yellow { background: #fef3c7; border: 1.5px solid #fde68a; color: #d97706; }
 
-.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 38px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
 .drop-zone:hover, .drop-zone.dragging { border-color: var(--accent); background: var(--accent-soft); }
+.drop-zone.loaded { border-color: var(--green); background: var(--green-soft); }
 .drop-emoji { font-size: 34px; margin-bottom: 8px; }
 .drop-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 .drop-sub { font-size: 13px; color: var(--text2); }
@@ -139,6 +141,7 @@ tr:hover td { background: var(--surface2); }
 
 @media (max-width: 600px) {
   .stats { grid-template-columns: repeat(3, 1fr); }
+  .upload-grid { grid-template-columns: 1fr; }
   .url-row { flex-direction: column; }
   .url-input { width: 100%; }
 }
@@ -166,21 +169,38 @@ tr:hover td { background: var(--surface2); }
       <div class="card-title">📂 인스타 JSON 파일 업로드</div>
       <div class="step-row"><span class="step-badge">01</span><span>인스타그램 → 프로필 → 메뉴(☰) → 계정센터 → 내 정보 및 권한 → 내 정보 다운로드</span></div>
       <div class="step-row"><span class="step-badge">02</span><span>형식 <code>JSON</code> 선택 → 요청 → 다운로드 후 압축 해제</span></div>
-      <div class="step-row"><span class="step-badge">03</span><span><code>connections/followers_and_following/</code> 폴더의 <code>followers_1.json</code> + <code>following.json</code> 두 파일 업로드</span></div>
+      <div class="step-row"><span class="step-badge">03</span><span><code>connections/followers_and_following/</code> 폴더의 <code>followers_1.json</code>과 <code>following.json</code>을 아래 각 칸에 올려주세요</span></div>
     </div>
 
     <div id="upload-section">
-      <div class="drop-zone" id="drop-zone"
-        onclick="document.getElementById('json-file').click()"
-        ondragover="event.preventDefault();this.classList.add('dragging')"
-        ondragleave="this.classList.remove('dragging')"
-        ondrop="handleDrop(event)">
-        <div class="drop-emoji">📂</div>
-        <div class="drop-title">JSON 파일을 여기에 드래그하거나 클릭</div>
-        <div class="drop-sub">followers_1.json + following.json 동시 선택</div>
-        <div id="file-chip" class="file-chip" style="display:none;"></div>
+      <div class="upload-grid">
+        <div>
+          <div class="drop-zone" id="drop-zone-followers"
+            onclick="document.getElementById('file-followers').click()"
+            ondragover="event.preventDefault();this.classList.add('dragging')"
+            ondragleave="this.classList.remove('dragging')"
+            ondrop="handleDropFor(event,'followers')">
+            <div class="drop-emoji">👥</div>
+            <div class="drop-title">팔로워</div>
+            <div class="drop-sub">followers_1.json</div>
+            <div id="chip-followers" class="file-chip" style="display:none;"></div>
+          </div>
+          <input type="file" id="file-followers" accept=".json" onchange="loadFile(this.files[0],'followers')">
+        </div>
+        <div>
+          <div class="drop-zone" id="drop-zone-following"
+            onclick="document.getElementById('file-following').click()"
+            ondragover="event.preventDefault();this.classList.add('dragging')"
+            ondragleave="this.classList.remove('dragging')"
+            ondrop="handleDropFor(event,'following')">
+            <div class="drop-emoji">💌</div>
+            <div class="drop-title">팔로잉</div>
+            <div class="drop-sub">following.json</div>
+            <div id="chip-following" class="file-chip" style="display:none;"></div>
+          </div>
+          <input type="file" id="file-following" accept=".json" onchange="loadFile(this.files[0],'following')">
+        </div>
       </div>
-      <input type="file" id="json-file" accept=".json" multiple onchange="handleFileSelect(this.files)">
       <button class="btn btn-primary btn-full" id="btn-analyze" disabled onclick="analyze()">분석하기 🔍</button>
       <p class="privacy">🔒 모든 데이터는 내 브라우저 안에서만 처리돼요</p>
     </div>
@@ -337,33 +357,29 @@ function extractUsernames(data) {
   return users;
 }
 
-function handleDrop(e) {
+function handleDropFor(e, type) {
   e.preventDefault();
-  document.getElementById('drop-zone').classList.remove('dragging');
-  processFiles(Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.json')));
+  document.getElementById(`drop-zone-${type}`).classList.remove('dragging');
+  const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.json'));
+  if (file) loadFile(file, type);
 }
-function handleFileSelect(files) { processFiles(Array.from(files)); }
 
-function processFiles(files) {
-  pendingData = { followers: null, following: null };
-  let done = 0;
-  document.getElementById('file-chip').textContent = files.map(f => f.name).join(' + ');
-  document.getElementById('file-chip').style.display = 'inline-block';
-  files.forEach(file => {
-    const r = new FileReader();
-    r.onload = e => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (file.name.toLowerCase().includes('follower')) pendingData.followers = data;
-        else if (file.name.toLowerCase().includes('following')) pendingData.following = data;
-        else { if (!pendingData.followers) pendingData.followers = data; else pendingData.following = data; }
-      } catch { alert('JSON 파싱 오류: ' + file.name); }
-      done++;
-      if (done === files.length)
-        document.getElementById('btn-analyze').disabled = !(pendingData.followers || pendingData.following);
-    };
-    r.readAsText(file);
-  });
+function loadFile(file, type) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      pendingData[type] = JSON.parse(e.target.result);
+      const chip = document.getElementById(`chip-${type}`);
+      chip.textContent = '✓ ' + file.name;
+      chip.style.display = 'inline-block';
+      document.getElementById(`drop-zone-${type}`).classList.add('loaded');
+    } catch {
+      alert('JSON 파싱 오류: ' + file.name);
+    }
+    document.getElementById('btn-analyze').disabled = !(pendingData.followers || pendingData.following);
+  };
+  r.readAsText(file);
 }
 
 function analyze() {
@@ -463,8 +479,11 @@ function resetApp() {
   document.getElementById('upload-section').style.display = 'block';
   document.getElementById('result-section').style.display = 'none';
   document.getElementById('btn-analyze').disabled = true;
-  document.getElementById('file-chip').style.display = 'none';
-  document.getElementById('json-file').value = '';
+  ['followers', 'following'].forEach(type => {
+    document.getElementById(`chip-${type}`).style.display = 'none';
+    document.getElementById(`drop-zone-${type}`).classList.remove('loaded');
+    document.getElementById(`file-${type}`).value = '';
+  });
   currentTab = 'all';
 }
 </script>
