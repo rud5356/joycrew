@@ -22,6 +22,8 @@
   --red-soft: #fee2e2;
   --crew: #c084fc;
   --crew-soft: #f3e8ff;
+  --orange: #fb923c;
+  --orange-soft: #ffedd5;
   --text: #3d2952;
   --text2: #9d7eb5;
   --text3: #c4a8d8;
@@ -106,6 +108,7 @@ input[type="file"] { display: none; }
 .cnt-b { background: var(--blue-soft); color: var(--blue); }
 .cnt-g { background: var(--green-soft); color: var(--green); }
 .cnt-c { background: var(--crew-soft); color: var(--crew); }
+.cnt-o { background: var(--orange-soft); color: var(--orange); }
 
 .sub-filters { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
 .check-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); cursor: pointer; user-select: none; }
@@ -134,12 +137,12 @@ tr:hover td { background: var(--surface2); }
 .b-mutual { background: var(--green-soft); color: var(--green); }
 .b-staff-ok { background: var(--crew-soft); color: var(--crew); }
 .b-unfollow { background: var(--red-soft); color: #dc2626; }
-.b-block { background: #111827; color: white; }
+.b-block { background: var(--orange-soft); color: var(--orange); }
 .crew-tag { background: var(--crew-soft); color: var(--crew); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .staff-tag { background: #fef3c7; color: #d97706; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .alt-tag { background: var(--blue-soft); color: var(--blue); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .unfollow-tag { background: var(--red-soft); color: var(--red); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.block-tag { background: #111827; color: white; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+.block-tag { background: var(--orange-soft); color: var(--orange); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .num-cell { color: var(--text3); font-size: 12px; }
 .empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
 
@@ -256,7 +259,7 @@ tr:hover td { background: var(--surface2); }
         <button class="ftab" onclick="setTab('mutual')">맞팔 <span class="cnt cnt-g" id="t-mutual">0</span></button>
         <button class="ftab ftab-crew" onclick="setTab('crew')">💜 쪼이크루 <span class="cnt cnt-c" id="t-crew">0</span></button>
         <button class="ftab" onclick="setTab('unfollow')">언팔필수 <span class="cnt cnt-r" id="t-unfollow">0</span></button>
-        <button class="ftab" onclick="setTab('block')">차단필수 <span class="cnt cnt-r" id="t-block">0</span></button>
+        <button class="ftab" onclick="setTab('block')">차단필수 <span class="cnt cnt-o" id="t-block">0</span></button>
       </div>
 
       <div class="sub-filters">
@@ -530,8 +533,8 @@ function updateResultCounts() {
   const nf = allRows.filter(r => r.status === 'notfollowing' || r.status === 'followRequired').length;
   const mu = allRows.filter(r => r.status === 'mutual').length;
   const cr = allRows.filter(r => r.isCrew).length;
-  const uf = allRows.filter(r => r.isUnfollow).length;
-  const bl = allRows.filter(r => r.isBlock).length;
+  const uf = allRows.filter(r => r.status === 'unfollowRequired').length;
+  const bl = allRows.filter(r => r.status === 'blockRequired').length;
   document.getElementById('s-followers').textContent = followersSet.size;
   document.getElementById('s-following').textContent = followingSet.size;
   document.getElementById('s-notback').textContent = nb;
