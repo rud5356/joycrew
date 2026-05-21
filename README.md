@@ -1,6 +1,6 @@
 # Joycrew Follow Checker
 
-쪼이크루 팔로우/맞팔 상태를 확인하는 정적 웹 도구입니다. 인스타그램에서 내려받은 `followers_1.json`, `following.json` 파일을 브라우저에 업로드하면 쪼이크루 목록, 운영진, 언팔리스트를 기준으로 확인할 항목을 정리해 줍니다.
+쪼이크루 팔로우/맞팔 상태를 확인하는 정적 웹 도구입니다. 인스타그램에서 내려받은 `followers_1.json`, `following.json` 파일을 브라우저에 업로드하면 쪼이크루 목록, 운영진, 언팔필수, 차단필수 목록을 기준으로 확인할 항목을 정리해 줍니다.
 
 배포 주소:
 
@@ -13,7 +13,7 @@ https://rud5356.github.io/joycrew/
 - 인스타그램 팔로워/팔로잉 JSON 파일 업로드
 - 쪼이크루 본계정과 부계정 맞팔 상태 확인
 - 운영진 예외 처리
-- 언팔리스트 전체 확인 및 언팔 필요 여부 표시
+- 언팔필수/차단필수 전체 확인 및 처리 필요 여부 표시
 - 모든 분석을 브라우저 안에서만 처리
 
 ## 사용 방법
@@ -32,19 +32,20 @@ connections/followers_and_following/following.json
 
 ## joycrew_list.csv 형식
 
-`joycrew_list.csv`는 헤더 없이 4개 열을 사용합니다.
+`joycrew_list.csv`는 헤더 없이 5개 열을 사용합니다.
 
 | 열 | 의미 | 체크 규칙 |
 |---:|---|---|
 | 1열 | 조이크루 본계정 | 맞팔 체크 대상 |
 | 2열 | 부계정 | 맞팔 체크 대상 |
 | 3열 | 운영진 | 내가 팔로우하면 정상, 운영진이 나를 맞팔하지 않아도 정상 |
-| 4열 | 언팔리스트 | 전체 목록 표시, 내가 팔로우 중이면 언팔필수 |
+| 4열 | 언팔필수 | 쪼이크루로 표시, 내가 팔로우 중이면 언팔필수 |
+| 5열 | 차단필수 | 쪼이크루로 표시, 차단필수로 우선 표시 |
 
 예시:
 
 ```csv
-main_account,sub_account,staff_account,unfollow_account
+main_account,sub_account,staff_account,unfollow_account,block_account
 ```
 
 계정명은 `@` 없이 쓰는 것을 권장합니다. 빈칸은 있어도 됩니다.
@@ -58,6 +59,7 @@ main_account,sub_account,staff_account,unfollow_account
 - `운영진 OK`: 운영진을 내가 팔로우 중
 - `언팔필수`: 언팔리스트 계정을 내가 팔로우 중
 - `언팔 완료`: 언팔리스트 계정을 내가 팔로우하지 않음
+- `차단필수`: 차단필수 목록 계정
 
 ## 로컬에서 확인하기
 
