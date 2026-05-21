@@ -490,7 +490,7 @@ function rebuildRows() {
     let status = isF && isFg ? 'mutual' : isFg ? 'notback' : 'notfollowing';
 
     if (isBlock) {
-      status = 'blockRequired';
+      status = (isF || isFg) ? 'blockRequired' : 'blockOk';
     } else if (isUnfollow) {
       status = isFg ? 'unfollowRequired' : 'unfollowOk';
     } else if (isStaff) {
@@ -510,7 +510,7 @@ function rebuildRows() {
     });
   });
   allRows.sort((a, b) => {
-    const priority = { blockRequired:0, unfollowRequired:1, followRequired:2, notback:3, notfollowing:4, staffOk:5, mutual:6, unfollowOk:7 };
+    const priority = { blockRequired:0, unfollowRequired:1, followRequired:2, notback:3, notfollowing:4, staffOk:5, mutual:6, unfollowOk:7, blockOk:8 };
     if (a.status !== b.status) return priority[a.status] - priority[b.status];
     if (a.isCrew !== b.isCrew) return a.isCrew ? -1 : 1;
     if (a.isStaff !== b.isStaff) return a.isStaff ? -1 : 1;
@@ -584,6 +584,7 @@ function renderTable() {
     unfollowRequired:{ label:'언팔필수',  cls:'b-unfollow' },
     unfollowOk:  { label:'언팔 완료',     cls:'b-mutual' },
     blockRequired:{ label:'차단필수',    cls:'b-block' },
+    blockOk:      { label:'차단 완료',   cls:'b-mutual' },
   };
   tbody.innerHTML = rows.map((r, i) => {
     const s = si[r.status];
