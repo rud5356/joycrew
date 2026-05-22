@@ -14,7 +14,11 @@ const JOYCREW_CONFIG = {
   targetSheetName: '',
   inputSheetName: '신규입장자_입력',
   resultSheetName: '신규입장자_결과',
+  actionInputSheetName: '언팔차단_입력',
+  actionResultSheetName: '언팔차단_결과',
   targetColumn: 1,
+  unfollowColumn: 4,
+  blockColumn: 5,
   inputCell: 'A2',
 };
 
@@ -23,6 +27,8 @@ function onOpen() {
     .createMenu('쪼이크루')
     .addItem('입력/결과 시트 만들기', 'setupJoycrewNewEntrantSheets')
     .addItem('신규입장자 반영', 'applyJoycrewNewEntrants')
+    .addSeparator()
+    .addItem('언팔/차단 반영', 'applyJoycrewActionList')
     .addToUi();
 }
 
@@ -30,6 +36,8 @@ function setupJoycrewNewEntrantSheets() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const inputSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.inputSheetName);
   const resultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.resultSheetName);
+  const actionInputSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionInputSheetName);
+  const actionResultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionResultSheetName);
 
   inputSheet.clear();
   inputSheet.getRange('A1').setValue('아래 A2 칸에 신규입장자 원문을 그대로 붙여넣고, 메뉴에서 "쪼이크루 > 신규입장자 반영"을 누르세요.');
@@ -43,7 +51,19 @@ function setupJoycrewNewEntrantSheets() {
   resultSheet.setFrozenRows(1);
   resultSheet.setColumnWidths(1, 5, 160);
 
-  SpreadsheetApp.getUi().alert('신규입장자_입력 / 신규입장자_결과 시트를 만들었어요.');
+  actionInputSheet.clear();
+  actionInputSheet.getRange('A1').setValue('아래 A2 칸에 "언팔" 또는 "차단"을 첫 줄에 쓰고, 그 아래에 @아이디나 인스타그램 주소를 붙여넣은 뒤 "쪼이크루 > 언팔/차단 반영"을 누르세요.');
+  actionInputSheet.getRange(JOYCREW_CONFIG.inputCell).setValue('');
+  actionInputSheet.getRange(JOYCREW_CONFIG.inputCell).setWrap(true);
+  actionInputSheet.setColumnWidth(1, 760);
+  actionInputSheet.setRowHeight(2, 360);
+
+  actionResultSheet.clear();
+  writeActionResultHeader_(actionResultSheet);
+  actionResultSheet.setFrozenRows(1);
+  actionResultSheet.setColumnWidths(1, 4, 160);
+
+  SpreadsheetApp.getUi().alert('신규입장자/언팔차단 입력 시트와 결과 시트를 만들었어요.');
 }
 
 function applyJoycrewNewEntrants() {
@@ -123,6 +143,96 @@ function applyJoycrewNewEntrants() {
   );
 }
 
+function applyJoycrewActionList() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const targetSheet = findTargetSheet_(spreadsheet);
+  const inputSheet = spreadsheet.getSheetByName(JOYCREW_CONFIG.actionInputSheetName);
+
+  if (!inputSheet) {
+    SpreadsheetApp.getUi().alert('먼저 "쪼이크루 > 입력/결과 시트 만들기"를 실행해주세요.');
+    return;
+  }
+
+  const rawText = getJoycrewRawInputText_(spreadsheet, inputSheet);
+  const parsed = parseJoycrewActionList_(rawText);
+
+  if (!parsed.action) {
+    SpreadsheetApp.getUi().alert('첫 줄이나 내용에 "언팔" 또는 "차단"을 넣어주세요.');
+    return;
+  }
+
+  if (parsed.ids.length === 0) {
+    SpreadsheetApp.getUi().alert('@아이디 또는 instagram.com/아이디 형식의 계정을 찾지 못했어요.');
+    return;
+  }
+
+  const actionLabel = parsed.action === 'block' ? '차단' : '언팔';
+  const targetColumn = parsed.action === 'block'
+    ? JOYCREW_CONFIG.blockColumn
+    : JOYCREW_CONFIG.unfollowColumn;
+
+  ensureColumns_(targetSheet, targetColumn);
+
+  const existingValues = targetSheet
+    .getRange(1, targetColumn, targetSheet.getMaxRows(), 1)
+    .getDisplayValues()
+    .map(row => normalizeJoycrewId_(row[0]));
+
+  const existingRowsById = {};
+  const blankRows = [];
+  existingValues.forEach((id, index) => {
+    const rowNumber = index + 1;
+    if (id) {
+      existingRowsById[id] = rowNumber;
+    } else {
+      blankRows.push(rowNumber);
+    }
+  });
+
+  const results = [];
+  let updatedCount = 0;
+  let alreadyExistsCount = 0;
+
+  parsed.ids.forEach(id => {
+    if (existingRowsById[id]) {
+      alreadyExistsCount += 1;
+      results.push([existingRowsById[id], id, `${actionLabel} 목록에 이미 있음`, `${existingRowsById[id]}행`]);
+      return;
+    }
+
+    let targetRow = blankRows.shift();
+    if (!targetRow) {
+      const currentRows = targetSheet.getMaxRows();
+      targetSheet.insertRowsAfter(currentRows, 1);
+      targetRow = currentRows + 1;
+    }
+
+    targetSheet.getRange(targetRow, targetColumn).setValue(id);
+    existingRowsById[id] = targetRow;
+    updatedCount += 1;
+    results.push([targetRow, id, `${actionLabel} 입력 완료`, '']);
+  });
+
+  const resultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionResultSheetName);
+  resultSheet.clear();
+  writeActionResultHeader_(resultSheet);
+  if (results.length > 0) {
+    resultSheet.getRange(2, 1, results.length, 4).setValues(results);
+  }
+  resultSheet.autoResizeColumns(1, 4);
+
+  SpreadsheetApp.getUi().alert(
+    [
+      `대상 시트: ${targetSheet.getName()}`,
+      `작업: ${actionLabel}`,
+      `파싱: ${parsed.ids.length}건`,
+      `입력 완료: ${updatedCount}건`,
+      `이미 있음: ${alreadyExistsCount}건`,
+      '자세한 내용은 언팔차단_결과 시트를 확인해주세요.',
+    ].join('\n')
+  );
+}
+
 function parseJoycrewEntrants_(text) {
   const entries = [];
   const duplicates = [];
@@ -150,6 +260,76 @@ function parseJoycrewEntrants_(text) {
   });
 
   return { entries, duplicates };
+}
+
+function parseJoycrewActionList_(text) {
+  const rawText = String(text || '');
+  const action = detectJoycrewAction_(rawText);
+  const ids = [];
+  const seenIds = {};
+  let duplicateCount = 0;
+
+  rawText.split(/\r?\n/).forEach(line => {
+    extractJoycrewIdsFromLine_(line).forEach(id => {
+      if (seenIds[id]) {
+        duplicateCount += 1;
+        return;
+      }
+
+      seenIds[id] = true;
+      ids.push(id);
+    });
+  });
+
+  return { action, ids, duplicateCount };
+}
+
+function detectJoycrewAction_(text) {
+  const normalized = String(text || '').trim();
+  if (/(^|\s)(차단필수|차단)(\s|$)/m.test(normalized)) {
+    return 'block';
+  }
+  if (/(^|\s)(언팔필수|언팔)(\s|$)/m.test(normalized)) {
+    return 'unfollow';
+  }
+  return '';
+}
+
+function extractJoycrewIdsFromLine_(line) {
+  const ids = [];
+  const seenInLine = {};
+  const text = String(line || '');
+
+  addJoycrewIdMatches_(ids, seenInLine, text, /@([A-Za-z0-9._]+)/g);
+  addJoycrewIdMatches_(ids, seenInLine, text, /(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]+)/gi);
+
+  const commandRemoved = text
+    .replace(/^(언팔필수|언팔|차단필수|차단)\s*/g, '')
+    .trim();
+
+  if (!/@|instagram\.com/i.test(commandRemoved)) {
+    const bareMatch = commandRemoved.match(/^([A-Za-z0-9._]+)$/);
+    if (bareMatch) {
+      addJoycrewId_(ids, seenInLine, bareMatch[1]);
+    }
+  }
+
+  return ids;
+}
+
+function addJoycrewIdMatches_(ids, seenInLine, text, regex) {
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    addJoycrewId_(ids, seenInLine, match[1]);
+  }
+}
+
+function addJoycrewId_(ids, seenInLine, value) {
+  const id = normalizeJoycrewId_(String(value || '').replace(/[),;:]+$/g, ''));
+  if (!id || seenInLine[id]) return;
+
+  seenInLine[id] = true;
+  ids.push(id);
 }
 
 function getJoycrewRawInputText_(spreadsheet, inputSheet) {
@@ -198,6 +378,8 @@ function findTargetSheet_(spreadsheet) {
   const excludedNames = new Set([
     JOYCREW_CONFIG.inputSheetName,
     JOYCREW_CONFIG.resultSheetName,
+    JOYCREW_CONFIG.actionInputSheetName,
+    JOYCREW_CONFIG.actionResultSheetName,
   ]);
 
   const targetSheet = spreadsheet.getSheets().find(sheet => !excludedNames.has(sheet.getName()));
@@ -214,6 +396,13 @@ function ensureRows_(sheet, requiredRows) {
   }
 }
 
+function ensureColumns_(sheet, requiredColumns) {
+  const currentColumns = sheet.getMaxColumns();
+  if (requiredColumns > currentColumns) {
+    sheet.insertColumnsAfter(currentColumns, requiredColumns - currentColumns);
+  }
+}
+
 function getOrCreateSheet_(spreadsheet, sheetName) {
   return spreadsheet.getSheetByName(sheetName) || spreadsheet.insertSheet(sheetName);
 }
@@ -224,6 +413,16 @@ function writeResultHeader_(sheet) {
     '입력 아이디',
     '결과',
     '기존 아이디',
+  ]]);
+  sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+}
+
+function writeActionResultHeader_(sheet) {
+  sheet.getRange(1, 1, 1, 4).setValues([[
+    '행',
+    '입력 아이디',
+    '결과',
+    '기존 위치',
   ]]);
   sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
 }
