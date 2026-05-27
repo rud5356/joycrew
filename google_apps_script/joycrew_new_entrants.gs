@@ -61,7 +61,7 @@ function setupJoycrewNewEntrantSheets() {
   actionResultSheet.clear();
   writeActionResultHeader_(actionResultSheet);
   actionResultSheet.setFrozenRows(1);
-  actionResultSheet.setColumnWidths(1, 4, 160);
+  actionResultSheet.setColumnWidths(1, 5, 160);
 
   SpreadsheetApp.getUi().alert('신규입장자/언팔차단 입력 시트와 결과 시트를 만들었어요.');
 }
@@ -177,6 +177,12 @@ function applyJoycrewActionList() {
     .getRange(1, targetColumn, targetSheet.getMaxRows(), 1)
     .getDisplayValues()
     .map(row => normalizeJoycrewId_(row[0]));
+  const mainAccountRowsById = buildJoycrewRowsById_(
+    targetSheet
+      .getRange(1, JOYCREW_CONFIG.targetColumn, targetSheet.getMaxRows(), 1)
+      .getDisplayValues()
+      .map(row => normalizeJoycrewId_(row[0]))
+  );
 
   const existingRowsById = {};
   const blankRows = [];
@@ -192,11 +198,16 @@ function applyJoycrewActionList() {
   const results = [];
   let updatedCount = 0;
   let alreadyExistsCount = 0;
+  let clearedMainCount = 0;
 
   parsed.ids.forEach(id => {
+    const clearedMainRows = clearJoycrewMainAccountRows_(targetSheet, mainAccountRowsById, id);
+    clearedMainCount += clearedMainRows.length;
+    const clearedMainText = formatJoycrewRows_(clearedMainRows);
+
     if (existingRowsById[id]) {
       alreadyExistsCount += 1;
-      results.push([existingRowsById[id], id, `${actionLabel} 목록에 이미 있음`, `${existingRowsById[id]}행`]);
+      results.push([existingRowsById[id], id, `${actionLabel} 목록에 이미 있음`, `${existingRowsById[id]}행`, clearedMainText]);
       return;
     }
 
@@ -210,16 +221,16 @@ function applyJoycrewActionList() {
     targetSheet.getRange(targetRow, targetColumn).setValue(id);
     existingRowsById[id] = targetRow;
     updatedCount += 1;
-    results.push([targetRow, id, `${actionLabel} 입력 완료`, '']);
+    results.push([targetRow, id, `${actionLabel} 입력 완료`, '', clearedMainText]);
   });
 
   const resultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionResultSheetName);
   resultSheet.clear();
   writeActionResultHeader_(resultSheet);
   if (results.length > 0) {
-    resultSheet.getRange(2, 1, results.length, 4).setValues(results);
+    resultSheet.getRange(2, 1, results.length, 5).setValues(results);
   }
-  resultSheet.autoResizeColumns(1, 4);
+  resultSheet.autoResizeColumns(1, 5);
 
   SpreadsheetApp.getUi().alert(
     [
@@ -228,6 +239,7 @@ function applyJoycrewActionList() {
       `파싱: ${parsed.ids.length}건`,
       `입력 완료: ${updatedCount}건`,
       `이미 있음: ${alreadyExistsCount}건`,
+      `A열 비움: ${clearedMainCount}건`,
       '자세한 내용은 언팔차단_결과 시트를 확인해주세요.',
     ].join('\n')
   );
@@ -332,6 +344,32 @@ function addJoycrewId_(ids, seenInLine, value) {
   ids.push(id);
 }
 
+function buildJoycrewRowsById_(values) {
+  const rowsById = {};
+  values.forEach((id, index) => {
+    if (!id) return;
+
+    if (!rowsById[id]) {
+      rowsById[id] = [];
+    }
+    rowsById[id].push(index + 1);
+  });
+  return rowsById;
+}
+
+function clearJoycrewMainAccountRows_(sheet, rowsById, id) {
+  const rows = rowsById[id] || [];
+  rows.forEach(rowNumber => {
+    sheet.getRange(rowNumber, JOYCREW_CONFIG.targetColumn).clearContent();
+  });
+  delete rowsById[id];
+  return rows;
+}
+
+function formatJoycrewRows_(rows) {
+  return rows.length > 0 ? rows.map(rowNumber => `${rowNumber}행`).join(', ') : '';
+}
+
 function getJoycrewRawInputText_(spreadsheet, inputSheet) {
   const inputText = collectColumnText_(inputSheet);
   if (inputText) return inputText;
@@ -418,11 +456,12 @@ function writeResultHeader_(sheet) {
 }
 
 function writeActionResultHeader_(sheet) {
-  sheet.getRange(1, 1, 1, 4).setValues([[
+  sheet.getRange(1, 1, 1, 5).setValues([[
     '행',
     '입력 아이디',
     '결과',
     '기존 위치',
+    'A열 정리',
   ]]);
-  sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
 }
