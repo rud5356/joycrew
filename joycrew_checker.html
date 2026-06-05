@@ -134,18 +134,18 @@ tr:hover td { background: var(--surface2); }
 .username { font-weight: 600; color: var(--text); }
 .ig-link { color: var(--accent); text-decoration: none; font-size: 12px; }
 .ig-link:hover { text-decoration: underline; }
-.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .b-notback { background: var(--red-soft); color: var(--red); }
 .b-notfollowing { background: var(--blue-soft); color: var(--blue); }
 .b-mutual { background: var(--green-soft); color: var(--green); }
 .b-staff-ok { background: var(--crew-soft); color: var(--crew); }
 .b-unfollow { background: var(--red-soft); color: #dc2626; }
 .b-block { background: var(--orange-soft); color: var(--orange); }
-.crew-tag { background: var(--crew-soft); color: var(--crew); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.staff-tag { background: #fef3c7; color: #d97706; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.alt-tag { background: var(--blue-soft); color: var(--blue); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.unfollow-tag { background: var(--red-soft); color: var(--red); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.block-tag { background: var(--orange-soft); color: var(--orange); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+.crew-tag { background: var(--crew-soft); color: var(--crew); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.staff-tag { background: #fef3c7; color: #d97706; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.alt-tag { background: var(--blue-soft); color: var(--blue); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.unfollow-tag { background: var(--red-soft); color: var(--red); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.block-tag { background: var(--orange-soft); color: var(--orange); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
 .num-cell { color: var(--text3); font-size: 12px; }
 .empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
 
@@ -180,8 +180,8 @@ tr:hover td { background: var(--surface2); }
   .check-label { font-size: 12px; }
 
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 460px; }
-  th { padding: 8px 10px; font-size: 10px; }
+  table { min-width: 520px; }
+  th { padding: 8px 10px; font-size: 10px; white-space: nowrap; }
   td { padding: 7px 10px; font-size: 12px; }
 
   .url-row { flex-direction: column; }
