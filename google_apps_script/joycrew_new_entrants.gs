@@ -6,7 +6,7 @@
  * 2. 이 파일 전체를 붙여넣고 저장합니다.
  * 3. 시트를 새로고침한 뒤 상단 메뉴의 "쪼이크루"를 사용합니다.
  * 4. "입력/결과 시트 만들기"를 먼저 누르고, "신규입장자_입력" 시트 A2 아래에 원문을 붙여넣습니다.
- * 5. "신규입장자 반영"을 누르면 비어 있는 A열만 채우고, 이미 값이 있는 번호는 결과 시트에 표시합니다.
+ * 5. "신규입장자 반영"을 누르면 A열에 신규입장자를 반영하고, 이미 값이 있던 번호는 새 아이디로 덮어씁니다.
  */
 
 const JOYCREW_CONFIG = {
@@ -94,7 +94,7 @@ function applyJoycrewNewEntrants() {
 
   const results = [];
   let updatedCount = 0;
-  let occupiedCount = 0;
+  let overwrittenCount = 0;
   let sameCount = 0;
 
   parsed.entries.forEach(entry => {
@@ -114,8 +114,10 @@ function applyJoycrewNewEntrants() {
       return;
     }
 
-    occupiedCount += 1;
-    results.push([entry.number, entry.id, '이미 값 있음 - 확인 필요', existingId]);
+    targetSheet.getRange(entry.number, JOYCREW_CONFIG.targetColumn).setValue(entry.id);
+    existingValues[entry.number - 1] = entry.id;
+    overwrittenCount += 1;
+    results.push([entry.number, entry.id, '덮어쓰기 완료', existingId]);
   });
 
   parsed.duplicates.forEach(item => {
@@ -135,7 +137,7 @@ function applyJoycrewNewEntrants() {
       `대상 시트: ${targetSheet.getName()}`,
       `파싱: ${parsed.entries.length}건`,
       `입력 완료: ${updatedCount}건`,
-      `이미 값 있음: ${occupiedCount}건`,
+      `덮어쓰기 완료: ${overwrittenCount}건`,
       `이미 같은 아이디: ${sameCount}건`,
       `입력문 중복 번호: ${parsed.duplicates.length}건`,
       '자세한 내용은 신규입장자_결과 시트를 확인해주세요.',
