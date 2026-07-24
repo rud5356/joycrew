@@ -92,7 +92,17 @@ a { color: var(--accent); }
 .drop-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 .drop-sub { font-size: 13px; color: var(--text2); }
 .file-chip { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 20px; padding: 3px 12px; }
-input[type="file"] { display: none; }
+.file-picker { position: relative; }
+.file-picker input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.001;
+  cursor: pointer;
+  z-index: 2;
+  font-size: 0;
+}
 .privacy { font-size: 11px; color: var(--text3); text-align: center; margin-top: 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -215,8 +225,8 @@ tr:hover td { background: var(--surface2); }
 
     <div id="upload-section">
       <div class="upload-grid">
-        <div>
-          <label for="file-followers" class="drop-zone" id="drop-zone-followers"
+        <div class="file-picker">
+          <label class="drop-zone" id="drop-zone-followers"
             ondragover="event.preventDefault();this.classList.add('dragging')"
             ondragleave="this.classList.remove('dragging')"
             ondrop="handleDropFor(event,'followers')">
@@ -225,10 +235,14 @@ tr:hover td { background: var(--surface2); }
             <div class="drop-sub">followers_1.json</div>
             <div id="chip-followers" class="file-chip" style="display:none;"></div>
           </label>
-          <input type="file" id="file-followers" onchange="loadFile(this.files[0],'followers')">
+          <input type="file" id="file-followers" aria-label="팔로워 JSON 파일 선택"
+            ondragover="event.preventDefault();document.getElementById('drop-zone-followers').classList.add('dragging')"
+            ondragleave="document.getElementById('drop-zone-followers').classList.remove('dragging')"
+            ondrop="handleDropFor(event,'followers')"
+            onchange="loadFile(this.files && this.files[0],'followers')">
         </div>
-        <div>
-          <label for="file-following" class="drop-zone" id="drop-zone-following"
+        <div class="file-picker">
+          <label class="drop-zone" id="drop-zone-following"
             ondragover="event.preventDefault();this.classList.add('dragging')"
             ondragleave="this.classList.remove('dragging')"
             ondrop="handleDropFor(event,'following')">
@@ -237,7 +251,11 @@ tr:hover td { background: var(--surface2); }
             <div class="drop-sub">following.json</div>
             <div id="chip-following" class="file-chip" style="display:none;"></div>
           </label>
-          <input type="file" id="file-following" onchange="loadFile(this.files[0],'following')">
+          <input type="file" id="file-following" aria-label="팔로잉 JSON 파일 선택"
+            ondragover="event.preventDefault();document.getElementById('drop-zone-following').classList.add('dragging')"
+            ondragleave="document.getElementById('drop-zone-following').classList.remove('dragging')"
+            ondrop="handleDropFor(event,'following')"
+            onchange="loadFile(this.files && this.files[0],'following')">
         </div>
       </div>
       <button class="btn btn-primary btn-full" id="btn-analyze" disabled onclick="analyze()">분석하기 🔍</button>
@@ -463,15 +481,22 @@ function loadFile(file, type) {
   const r = new FileReader();
   r.onload = e => {
     try {
-      pendingData[type] = JSON.parse(e.target.result);
+      const text = String(e.target.result || '').replace(/^\uFEFF/, '');
+      pendingData[type] = JSON.parse(text);
       const chip = document.getElementById(`chip-${type}`);
       chip.textContent = '✓ ' + file.name;
       chip.style.display = 'inline-block';
       document.getElementById(`drop-zone-${type}`).classList.add('loaded');
-    } catch {
-      alert('JSON 파싱 오류: ' + file.name);
+    } catch (error) {
+      pendingData[type] = null;
+      alert('JSON 파일을 읽지 못했어요. 압축을 푼 뒤 ' + file.name + ' 파일을 다시 선택해 주세요.');
     }
     document.getElementById('btn-analyze').disabled = !(pendingData.followers || pendingData.following);
+  };
+  r.onerror = () => {
+    pendingData[type] = null;
+    document.getElementById('btn-analyze').disabled = !(pendingData.followers || pendingData.following);
+    alert('파일을 열 수 없어요. 내 파일 앱에서 기기에 저장한 뒤 다시 선택해 주세요.');
   };
   r.readAsText(file);
 }
