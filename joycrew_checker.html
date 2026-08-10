@@ -84,8 +84,8 @@ a { color: var(--accent); }
 .banner-green { background: var(--green-soft); border: 1.5px solid #a7f3d0; color: #059669; }
 .banner-yellow { background: #fef3c7; border: 1.5px solid #fde68a; color: #d97706; }
 
-.manual-link { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-bottom: 14px; padding: 12px 16px; border: 1.5px solid #f9a8d4; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; text-decoration: none; transition: all 0.18s; }
-.manual-link:hover { background: #fce7f3; border-color: var(--accent); transform: translateY(-1px); }
+.manual-link { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-bottom: 14px; padding: 16px; border: 2px solid var(--accent); border-radius: var(--radius); background: #fff; color: var(--accent); font-size: 17px; font-weight: 700; text-decoration: none; box-shadow: 0 3px 14px rgba(232,121,176,0.18); transition: all 0.18s; }
+.manual-link:hover { background: #fff; border-color: #db2777; color: #db2777; box-shadow: 0 5px 18px rgba(232,121,176,0.28); transform: translateY(-1px); }
 .manual-link:focus-visible { outline: 3px solid rgba(232,121,176,0.3); outline-offset: 2px; }
 
 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
@@ -219,13 +219,6 @@ tr:hover td { background: var(--surface2); }
   <div class="page visible" id="page-checker">
 
     <div id="crew-banner"></div>
-
-    <div class="card">
-      <div class="card-title">📂 인스타 JSON 파일 업로드</div>
-      <div class="step-row"><span class="step-badge">01</span><span>인스타그램 → 프로필 → 메뉴(☰) → 계정센터 → 내 정보 및 권한 → 내 정보 다운로드</span></div>
-      <div class="step-row"><span class="step-badge">02</span><span>팔로우/팔로잉 및 형식 <code>JSON</code> 선택 → 요청 → 다운로드 후 압축 해제</span></div>
-      <div class="step-row"><span class="step-badge">03</span><span><code>connections/followers_and_following/</code> 폴더의 <code>followers_1.json</code>과 <code>following.json</code>을 아래 각 칸에 올려주세요</span></div>
-    </div>
 
     <a class="manual-link" href="https://app.notion.com/p/3763a29d85cf80e6bbbed42c7049fcab?source=copy_link" target="_blank" rel="noopener noreferrer">📖 사용설명서 필독! <span aria-hidden="true">↗</span></a>
 
