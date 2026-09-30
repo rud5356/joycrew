@@ -16,9 +16,12 @@ const JOYCREW_CONFIG = {
   resultSheetName: '신규입장자_결과',
   actionInputSheetName: '언팔차단_입력',
   actionResultSheetName: '언팔차단_결과',
+  retireInputSheetName: '정기퇴장_입력',
+  retireResultSheetName: '정기퇴장_결과',
   targetColumn: 1,
   unfollowColumn: 4,
   blockColumn: 5,
+  retireColumn: 6,
   inputCell: 'A2',
 };
 
@@ -29,6 +32,7 @@ function onOpen() {
     .addItem('신규입장자 반영', 'applyJoycrewNewEntrants')
     .addSeparator()
     .addItem('언팔/차단 반영', 'applyJoycrewActionList')
+    .addItem('정기퇴장 반영', 'applyJoycrewRetireList')
     .addToUi();
 }
 
@@ -38,6 +42,8 @@ function setupJoycrewNewEntrantSheets() {
   const resultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.resultSheetName);
   const actionInputSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionInputSheetName);
   const actionResultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionResultSheetName);
+  const retireInputSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.retireInputSheetName);
+  const retireResultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.retireResultSheetName);
 
   inputSheet.clear();
   inputSheet.getRange('A1').setValue('아래 A2 칸에 신규입장자 원문을 그대로 붙여넣고, 메뉴에서 "쪼이크루 > 신규입장자 반영"을 누르세요.');
@@ -63,7 +69,19 @@ function setupJoycrewNewEntrantSheets() {
   actionResultSheet.setFrozenRows(1);
   actionResultSheet.setColumnWidths(1, 5, 160);
 
-  SpreadsheetApp.getUi().alert('신규입장자/언팔차단 입력 시트와 결과 시트를 만들었어요.');
+  retireInputSheet.clear();
+  retireInputSheet.getRange('A1').setValue('아래 A2 칸에 정기퇴장자 원문(@아이디, 인스타그램 주소, 번호 목록 모두 가능)을 그대로 붙여넣고 "쪼이크루 > 정기퇴장 반영"을 누르세요.');
+  retireInputSheet.getRange(JOYCREW_CONFIG.inputCell).setValue('');
+  retireInputSheet.getRange(JOYCREW_CONFIG.inputCell).setWrap(true);
+  retireInputSheet.setColumnWidth(1, 760);
+  retireInputSheet.setRowHeight(2, 360);
+
+  retireResultSheet.clear();
+  writeActionResultHeader_(retireResultSheet);
+  retireResultSheet.setFrozenRows(1);
+  retireResultSheet.setColumnWidths(1, 5, 160);
+
+  SpreadsheetApp.getUi().alert('신규입장자/언팔차단/정기퇴장 입력 시트와 결과 시트를 만들었어요.');
 }
 
 function applyJoycrewNewEntrants() {
@@ -146,9 +164,18 @@ function applyJoycrewNewEntrants() {
 }
 
 function applyJoycrewActionList() {
+  applyJoycrewAccountList_(JOYCREW_CONFIG.actionInputSheetName, JOYCREW_CONFIG.actionResultSheetName, '');
+}
+
+function applyJoycrewRetireList() {
+  // 정기퇴장_입력 시트는 "정기퇴장" 키워드 없이 아이디만 붙여넣어도 F열에 반영합니다.
+  applyJoycrewAccountList_(JOYCREW_CONFIG.retireInputSheetName, JOYCREW_CONFIG.retireResultSheetName, 'retire');
+}
+
+function applyJoycrewAccountList_(inputSheetName, resultSheetName, fixedAction) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const targetSheet = findTargetSheet_(spreadsheet);
-  const inputSheet = spreadsheet.getSheetByName(JOYCREW_CONFIG.actionInputSheetName);
+  const inputSheet = spreadsheet.getSheetByName(inputSheetName);
 
   if (!inputSheet) {
     SpreadsheetApp.getUi().alert('먼저 "쪼이크루 > 입력/결과 시트 만들기"를 실행해주세요.');
@@ -157,6 +184,9 @@ function applyJoycrewActionList() {
 
   const rawText = getJoycrewRawInputText_(spreadsheet, inputSheet);
   const parsed = parseJoycrewActionList_(rawText);
+  if (fixedAction) {
+    parsed.action = fixedAction;
+  }
 
   if (!parsed.action) {
     SpreadsheetApp.getUi().alert('첫 줄이나 내용에 "언팔" 또는 "차단"을 넣어주세요.');
@@ -168,10 +198,14 @@ function applyJoycrewActionList() {
     return;
   }
 
-  const actionLabel = parsed.action === 'block' ? '차단' : '언팔';
-  const targetColumn = parsed.action === 'block'
-    ? JOYCREW_CONFIG.blockColumn
-    : JOYCREW_CONFIG.unfollowColumn;
+  const actionLabels = { block: '차단', unfollow: '언팔', retire: '정기퇴장' };
+  const actionColumns = {
+    block: JOYCREW_CONFIG.blockColumn,
+    unfollow: JOYCREW_CONFIG.unfollowColumn,
+    retire: JOYCREW_CONFIG.retireColumn,
+  };
+  const actionLabel = actionLabels[parsed.action];
+  const targetColumn = actionColumns[parsed.action];
 
   ensureColumns_(targetSheet, targetColumn);
 
@@ -226,7 +260,7 @@ function applyJoycrewActionList() {
     results.push([targetRow, id, `${actionLabel} 입력 완료`, '', clearedMainText]);
   });
 
-  const resultSheet = getOrCreateSheet_(spreadsheet, JOYCREW_CONFIG.actionResultSheetName);
+  const resultSheet = getOrCreateSheet_(spreadsheet, resultSheetName);
   resultSheet.clear();
   writeActionResultHeader_(resultSheet);
   if (results.length > 0) {
@@ -242,7 +276,7 @@ function applyJoycrewActionList() {
       `입력 완료: ${updatedCount}건`,
       `이미 있음: ${alreadyExistsCount}건`,
       `A열 비움: ${clearedMainCount}건`,
-      '자세한 내용은 언팔차단_결과 시트를 확인해주세요.',
+      `자세한 내용은 ${resultSheetName} 시트를 확인해주세요.`,
     ].join('\n')
   );
 }
@@ -306,6 +340,9 @@ function detectJoycrewAction_(text) {
   if (/(^|\s)(언팔필수|언팔)(\s|$)/m.test(normalized)) {
     return 'unfollow';
   }
+  if (/(^|\s)(정기퇴장자|정기퇴장)(\s|$)/m.test(normalized)) {
+    return 'retire';
+  }
   return '';
 }
 
@@ -318,7 +355,8 @@ function extractJoycrewIdsFromLine_(line) {
   addJoycrewIdMatches_(ids, seenInLine, text, /(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]+)/gi);
 
   const commandRemoved = text
-    .replace(/^(언팔필수|언팔|차단필수|차단)\s*/g, '')
+    .replace(/^(언팔필수|언팔|차단필수|차단|정기퇴장자|정기퇴장)\s*/g, '')
+    .replace(/^\s*\d+\s*[.)]\s*/, '')
     .trim();
 
   if (!/@|instagram\.com/i.test(commandRemoved)) {
@@ -420,6 +458,8 @@ function findTargetSheet_(spreadsheet) {
     JOYCREW_CONFIG.resultSheetName,
     JOYCREW_CONFIG.actionInputSheetName,
     JOYCREW_CONFIG.actionResultSheetName,
+    JOYCREW_CONFIG.retireInputSheetName,
+    JOYCREW_CONFIG.retireResultSheetName,
   ]);
 
   const targetSheet = spreadsheet.getSheets().find(sheet => !excludedNames.has(sheet.getName()));

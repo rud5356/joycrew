@@ -152,6 +152,8 @@ tr:hover td { background: var(--surface2); }
 .alt-tag { background: var(--blue-soft); color: var(--blue); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .unfollow-tag { background: var(--red-soft); color: var(--red); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
 .block-tag { background: #111827; color: white; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+.b-retire { background: #ecfccb; color: #4d7c0f; }
+.retire-tag { background: #ecfccb; color: #4d7c0f; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
 .num-cell { color: var(--text3); font-size: 12px; }
 .empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
 
@@ -264,6 +266,7 @@ tr:hover td { background: var(--surface2); }
         <button class="ftab ftab-crew" onclick="setTab('crew')">💜 쪼이크루 <span class="cnt cnt-c" id="t-crew">0</span></button>
         <button class="ftab" onclick="setTab('unfollow')">언팔필수 <span class="cnt cnt-r" id="t-unfollow">0</span></button>
         <button class="ftab" onclick="setTab('block')">차단필수 <span class="cnt cnt-r" id="t-block">0</span></button>
+        <button class="ftab" onclick="setTab('retire')">정기퇴장 <span class="cnt cnt-g" id="t-retire">0</span></button>
       </div>
 
       <div class="sub-filters">
@@ -298,6 +301,7 @@ let altCrewSet = new Set();
 let staffSet = new Set();
 let unfollowSet = new Set();
 let blockSet = new Set();
+let retireSet = new Set();
 let followersSet = new Set();
 let followingSet = new Set();
 let allRows = [];
@@ -330,6 +334,7 @@ async function loadCrewFromCsv() {
     const staffAccounts = new Set();
     const unfollowAccounts = new Set();
     const blockAccounts = new Set();
+    const retireAccounts = new Set();
 
     text.split(/\r?\n/).forEach(line => {
       const cols = parseCsvLine(line);
@@ -338,6 +343,7 @@ async function loadCrewFromCsv() {
       const staff = normalizeAccount(cols[2]);
       const unfollow = normalizeAccount(cols[3]);
       const block = normalizeAccount(cols[4]);
+      const retire = normalizeAccount(cols[5]);
 
       if (main) crewAccounts.add(main);
       if (alt) {
@@ -353,6 +359,10 @@ async function loadCrewFromCsv() {
         crewAccounts.add(block);
         blockAccounts.add(block);
       }
+      if (retire) {
+        crewAccounts.add(retire);
+        retireAccounts.add(retire);
+      }
     });
 
     crewSet = crewAccounts;
@@ -360,7 +370,8 @@ async function loadCrewFromCsv() {
     staffSet = staffAccounts;
     unfollowSet = unfollowAccounts;
     blockSet = blockAccounts;
-    updateCrewBanner(true, crewSet.size, staffSet.size, unfollowSet.size, blockSet.size);
+    retireSet = retireAccounts;
+    updateCrewBanner(true, crewSet.size, staffSet.size, unfollowSet.size, blockSet.size, retireSet.size);
 
     if (document.getElementById('result-section').style.display !== 'none') {
       rebuildRows();
@@ -416,12 +427,12 @@ async function refreshCrew() {
   setTimeout(() => btn.textContent = orig, 2000);
 }
 
-function updateCrewBanner(connected, count = 0, staffCount = 0, unfollowCount = 0, blockCount = 0) {
+function updateCrewBanner(connected, count = 0, staffCount = 0, unfollowCount = 0, blockCount = 0, retireCount = 0) {
   const banner = document.getElementById('crew-banner');
   if (!banner) return;
   if (connected && count > 0) {
     banner.className = 'banner banner-green';
-    banner.innerHTML = `<span>맞팔체크 ${count}명, 운영진 ${staffCount}명, 언팔필수 ${unfollowCount}명, 차단필수 ${blockCount}명</span>`;
+    banner.innerHTML = `<span>맞팔체크 ${count}명, 운영진 ${staffCount}명, 언팔필수 ${unfollowCount}명, 차단필수 ${blockCount}명, 정기퇴장 ${retireCount}명</span>`;
     
   } else {
     banner.className = 'banner banner-purple';
@@ -487,13 +498,14 @@ function analyze() {
 }
 
 function rebuildRows() {
-  const all = new Set([...followersSet, ...followingSet, ...crewSet, ...staffSet, ...unfollowSet, ...blockSet]);
+  const all = new Set([...followersSet, ...followingSet, ...crewSet, ...staffSet, ...unfollowSet, ...blockSet, ...retireSet]);
   allRows = [];
   all.forEach(user => {
     const isF = followersSet.has(user), isFg = followingSet.has(user);
     const isStaff = staffSet.has(user);
     const isUnfollow = unfollowSet.has(user);
     const isBlock = blockSet.has(user);
+    const isRetire = retireSet.has(user);
     let status = isF && isFg ? 'mutual' : isFg ? 'notback' : 'notfollowing';
 
     if (isBlock) {
@@ -502,6 +514,9 @@ function rebuildRows() {
       status = isFg ? 'unfollowRequired' : 'unfollowOk';
     } else if (isStaff) {
       status = isFg ? 'staffOk' : 'followRequired';
+    } else if (isRetire) {
+      // 정기퇴장자: 기존 맞팔은 유지 확인, 관계가 없으면(신입 등) 체크 제외
+      status = isF && isFg ? 'mutual' : (isF || isFg) ? 'retireCheck' : 'retireOk';
     }
 
     allRows.push({
@@ -512,12 +527,13 @@ function rebuildRows() {
       isStaff,
       isUnfollow,
       isBlock,
+      isRetire,
       isFollowing: isFg,
       isFollower: isF,
     });
   });
   allRows.sort((a, b) => {
-    const priority = { blockRequired:0, unfollowRequired:1, followRequired:2, notback:3, notfollowing:4, staffOk:5, mutual:6, unfollowOk:7, blockOk:8 };
+    const priority = { blockRequired:0, unfollowRequired:1, followRequired:2, retireCheck:3, notback:4, notfollowing:5, staffOk:6, mutual:7, unfollowOk:8, blockOk:9, retireOk:10 };
     if (a.status !== b.status) return priority[a.status] - priority[b.status];
     if (a.isCrew !== b.isCrew) return a.isCrew ? -1 : 1;
     if (a.isStaff !== b.isStaff) return a.isStaff ? -1 : 1;
@@ -539,6 +555,7 @@ function updateResultCounts() {
   const cr = allRows.filter(r => r.isCrew).length;
   const uf = allRows.filter(r => r.isUnfollow).length;
   const bl = allRows.filter(r => r.isBlock).length;
+  const rt = allRows.filter(r => r.status === 'retireCheck').length;
   document.getElementById('s-followers').textContent = followersSet.size;
   document.getElementById('s-following').textContent = followingSet.size;
   document.getElementById('s-notback').textContent = nb;
@@ -551,12 +568,13 @@ function updateResultCounts() {
   document.getElementById('t-crew').textContent = cr;
   document.getElementById('t-unfollow').textContent = uf;
   document.getElementById('t-block').textContent = bl;
+  document.getElementById('t-retire').textContent = rt;
 }
 
 function setTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.ftab').forEach((el, i) =>
-    el.classList.toggle('active', ['all','notback','notfollowing','mutual','crew','unfollow','block'][i] === tab));
+    el.classList.toggle('active', ['all','notback','notfollowing','mutual','crew','unfollow','block','retire'][i] === tab));
   if (document.getElementById('chk-crew-only')) document.getElementById('chk-crew-only').checked = false;
   if (document.getElementById('chk-crew-notback')) document.getElementById('chk-crew-notback').checked = false;
   if (document.getElementById('search')) document.getElementById('search').value = '';
@@ -571,10 +589,11 @@ function renderTable() {
   if (currentTab === 'crew') rows = rows.filter(r => r.isCrew);
   else if (currentTab === 'unfollow') rows = rows.filter(r => r.isUnfollow);
   else if (currentTab === 'block') rows = rows.filter(r => r.isBlock);
+  else if (currentTab === 'retire') rows = rows.filter(r => r.isRetire);
   else if (currentTab === 'notfollowing') rows = rows.filter(r => r.status === 'notfollowing' || r.status === 'followRequired');
   else if (currentTab !== 'all') rows = rows.filter(r => r.status === currentTab);
   if (crewOnly) rows = rows.filter(r => r.isCrew);
-  if (crewNotback) rows = rows.filter(r => r.isCrew && r.status !== 'mutual');
+  if (crewNotback) rows = rows.filter(r => r.isCrew && r.status !== 'mutual' && r.status !== 'retireOk');
   if (q) rows = rows.filter(r => r.user.includes(q));
 
   const tbody = document.getElementById('tbody');
@@ -592,6 +611,8 @@ function renderTable() {
     unfollowOk:  { label:'언팔 완료',     cls:'b-mutual' },
     blockRequired:{ label:'차단필수',    cls:'b-block' },
     blockOk:      { label:'차단 완료',   cls:'b-mutual' },
+    retireCheck:  { label:'맞팔 확인',   cls:'b-retire' },
+    retireOk:     { label:'체크 제외',   cls:'b-mutual' },
   };
   tbody.innerHTML = rows.map((r, i) => {
     const s = si[r.status];
@@ -601,6 +622,7 @@ function renderTable() {
     if (r.isStaff) tags.push(`<span class="staff-tag">운영진</span>`);
     if (r.isUnfollow) tags.push(`<span class="unfollow-tag">언팔리스트</span>`);
     if (r.isBlock) tags.push(`<span class="block-tag">차단리스트</span>`);
+    if (r.isRetire) tags.push(`<span class="retire-tag">정기퇴장</span>`);
     const rowTags = tags.length
       ? tags.join(' ')
       : `<span style="color:var(--text3);font-size:12px;">—</span>`;

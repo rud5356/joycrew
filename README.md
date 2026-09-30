@@ -32,7 +32,7 @@ connections/followers_and_following/following.json
 
 ## joycrew_list.csv 형식
 
-`joycrew_list.csv`는 헤더 없이 5개 열을 사용합니다.
+`joycrew_list.csv`(연동된 구글시트)는 헤더 없이 6개 열을 사용합니다.
 
 | 열 | 의미 | 체크 규칙 |
 |---:|---|---|
@@ -41,11 +41,12 @@ connections/followers_and_following/following.json
 | 3열 | 운영진 | 내가 팔로우하면 정상, 운영진이 나를 맞팔하지 않아도 정상 |
 | 4열 | 언팔필수 | 쪼이크루로 표시, 내가 팔로우 중이면 언팔필수 |
 | 5열 | 차단필수 | 쪼이크루로 표시, 팔로워/팔로잉에 남아 있으면 차단필수 |
+| 6열 | 정기퇴장자 | 쪼이크루로 표시, 서로 맞팔이면 정상, 한쪽만 팔로우면 맞팔 확인, 관계 없으면 체크 제외 |
 
 예시:
 
 ```csv
-main_account,sub_account,staff_account,unfollow_account,block_account
+main_account,sub_account,staff_account,unfollow_account,block_account,retire_account
 ```
 
 계정명은 `@` 없이 쓰는 것을 권장합니다. 빈칸은 있어도 됩니다.
@@ -61,6 +62,8 @@ main_account,sub_account,staff_account,unfollow_account,block_account
 - `언팔 완료`: 언팔리스트 계정을 내가 팔로우하지 않음
 - `차단필수`: 차단필수 목록 계정이 팔로워/팔로잉에 남아 있음
 - `차단 완료`: 차단필수 목록 계정이 팔로워/팔로잉에 없음
+- `맞팔 확인`: 정기퇴장자와 한쪽만 팔로우 중 (기존 맞팔이 깨졌는지 확인)
+- `체크 제외`: 정기퇴장자와 서로 팔로우하지 않음 (신입 등, 신경 쓰지 않아도 됨)
 
 ## 로컬에서 확인하기
 
