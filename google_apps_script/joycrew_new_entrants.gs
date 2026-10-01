@@ -70,7 +70,7 @@ function setupJoycrewNewEntrantSheets() {
   actionResultSheet.setColumnWidths(1, 5, 160);
 
   retireInputSheet.clear();
-  retireInputSheet.getRange('A1').setValue('아래 A2 칸에 정기퇴장자 원문(@아이디, 인스타그램 주소, 번호 목록 모두 가능)을 그대로 붙여넣고 "쪼이크루 > 정기퇴장 반영"을 누르세요.');
+  retireInputSheet.getRange('A1').setValue('아래 A2 칸에 정기퇴장 공지 원문을 그대로 붙여넣고 "쪼이크루 > 정기퇴장 반영"을 누르세요. "*6개월 미만" 표시가 있는 계정은 언팔필수(D열), 나머지는 정기퇴장(F열)에 입력됩니다.');
   retireInputSheet.getRange(JOYCREW_CONFIG.inputCell).setValue('');
   retireInputSheet.getRange(JOYCREW_CONFIG.inputCell).setWrap(true);
   retireInputSheet.setColumnWidth(1, 760);
@@ -164,29 +164,15 @@ function applyJoycrewNewEntrants() {
 }
 
 function applyJoycrewActionList() {
-  applyJoycrewAccountList_(JOYCREW_CONFIG.actionInputSheetName, JOYCREW_CONFIG.actionResultSheetName, '');
-}
-
-function applyJoycrewRetireList() {
-  // 정기퇴장_입력 시트는 "정기퇴장" 키워드 없이 아이디만 붙여넣어도 F열에 반영합니다.
-  applyJoycrewAccountList_(JOYCREW_CONFIG.retireInputSheetName, JOYCREW_CONFIG.retireResultSheetName, 'retire');
-}
-
-function applyJoycrewAccountList_(inputSheetName, resultSheetName, fixedAction) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const targetSheet = findTargetSheet_(spreadsheet);
-  const inputSheet = spreadsheet.getSheetByName(inputSheetName);
+  const inputSheet = spreadsheet.getSheetByName(JOYCREW_CONFIG.actionInputSheetName);
 
   if (!inputSheet) {
     SpreadsheetApp.getUi().alert('먼저 "쪼이크루 > 입력/결과 시트 만들기"를 실행해주세요.');
     return;
   }
 
-  const rawText = getJoycrewRawInputText_(spreadsheet, inputSheet);
-  const parsed = parseJoycrewActionList_(rawText);
-  if (fixedAction) {
-    parsed.action = fixedAction;
-  }
+  const parsed = parseJoycrewActionList_(getJoycrewRawInputText_(spreadsheet, inputSheet));
 
   if (!parsed.action) {
     SpreadsheetApp.getUi().alert('첫 줄이나 내용에 "언팔" 또는 "차단"을 넣어주세요.');
@@ -198,21 +184,50 @@ function applyJoycrewAccountList_(inputSheetName, resultSheetName, fixedAction) 
     return;
   }
 
+  applyJoycrewAccountGroups_(
+    spreadsheet,
+    JOYCREW_CONFIG.actionResultSheetName,
+    [{ action: parsed.action, ids: parsed.ids }],
+    []
+  );
+}
+
+function applyJoycrewRetireList() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const inputSheet = spreadsheet.getSheetByName(JOYCREW_CONFIG.retireInputSheetName);
+
+  if (!inputSheet) {
+    SpreadsheetApp.getUi().alert('먼저 "쪼이크루 > 입력/결과 시트 만들기"를 실행해주세요.');
+    return;
+  }
+
+  const parsed = parseJoycrewRetireList_(getJoycrewRawInputText_(spreadsheet, inputSheet));
+
+  if (parsed.retireIds.length === 0 && parsed.unfollowIds.length === 0) {
+    SpreadsheetApp.getUi().alert('정기퇴장자 아이디를 찾지 못했어요. 정기퇴장_입력 시트 A2 아래에 원문을 붙여넣었는지 확인해주세요.');
+    return;
+  }
+
+  // "*6개월 미만" 표시가 있는 계정은 정기퇴장(F열)이 아니라 언팔필수(D열)로 보냅니다.
+  applyJoycrewAccountGroups_(
+    spreadsheet,
+    JOYCREW_CONFIG.retireResultSheetName,
+    [
+      { action: 'unfollow', ids: parsed.unfollowIds },
+      { action: 'retire', ids: parsed.retireIds },
+    ],
+    parsed.unparsedLines
+  );
+}
+
+function applyJoycrewAccountGroups_(spreadsheet, resultSheetName, groups, unparsedLines) {
+  const targetSheet = findTargetSheet_(spreadsheet);
   const actionLabels = { block: '차단', unfollow: '언팔', retire: '정기퇴장' };
   const actionColumns = {
     block: JOYCREW_CONFIG.blockColumn,
     unfollow: JOYCREW_CONFIG.unfollowColumn,
     retire: JOYCREW_CONFIG.retireColumn,
   };
-  const actionLabel = actionLabels[parsed.action];
-  const targetColumn = actionColumns[parsed.action];
-
-  ensureColumns_(targetSheet, targetColumn);
-
-  const existingValues = targetSheet
-    .getRange(1, targetColumn, targetSheet.getMaxRows(), 1)
-    .getDisplayValues()
-    .map(row => normalizeJoycrewId_(row[0]));
   const mainAccountRowsById = buildJoycrewRowsById_(
     targetSheet
       .getRange(1, JOYCREW_CONFIG.targetColumn, targetSheet.getMaxRows(), 1)
@@ -220,44 +235,63 @@ function applyJoycrewAccountList_(inputSheetName, resultSheetName, fixedAction) 
       .map(row => normalizeJoycrewId_(row[0]))
   );
 
-  const existingRowsById = {};
-  const blankRows = [];
-  existingValues.forEach((id, index) => {
-    const rowNumber = index + 1;
-    if (id) {
-      existingRowsById[id] = rowNumber;
-    } else {
-      blankRows.push(rowNumber);
-    }
-  });
-
   const results = [];
-  let updatedCount = 0;
-  let alreadyExistsCount = 0;
+  const summaryLines = [];
   let clearedMainCount = 0;
 
-  parsed.ids.forEach(id => {
-    const clearedMainRows = clearJoycrewMainAccountRows_(targetSheet, mainAccountRowsById, id);
-    clearedMainCount += clearedMainRows.length;
-    const clearedMainText = formatJoycrewRows_(clearedMainRows);
+  groups.forEach(group => {
+    if (group.ids.length === 0) return;
 
-    if (existingRowsById[id]) {
-      alreadyExistsCount += 1;
-      results.push([existingRowsById[id], id, `${actionLabel} 목록에 이미 있음`, `${existingRowsById[id]}행`, clearedMainText]);
-      return;
-    }
+    const actionLabel = actionLabels[group.action];
+    const targetColumn = actionColumns[group.action];
+    ensureColumns_(targetSheet, targetColumn);
 
-    let targetRow = blankRows.shift();
-    if (!targetRow) {
-      const currentRows = targetSheet.getMaxRows();
-      targetSheet.insertRowsAfter(currentRows, 1);
-      targetRow = currentRows + 1;
-    }
+    const existingRowsById = {};
+    const blankRows = [];
+    targetSheet
+      .getRange(1, targetColumn, targetSheet.getMaxRows(), 1)
+      .getDisplayValues()
+      .forEach((row, index) => {
+        const id = normalizeJoycrewId_(row[0]);
+        if (id) {
+          existingRowsById[id] = index + 1;
+        } else {
+          blankRows.push(index + 1);
+        }
+      });
 
-    targetSheet.getRange(targetRow, targetColumn).setValue(id);
-    existingRowsById[id] = targetRow;
-    updatedCount += 1;
-    results.push([targetRow, id, `${actionLabel} 입력 완료`, '', clearedMainText]);
+    let updatedCount = 0;
+    let alreadyExistsCount = 0;
+
+    group.ids.forEach(id => {
+      const clearedMainRows = clearJoycrewMainAccountRows_(targetSheet, mainAccountRowsById, id);
+      clearedMainCount += clearedMainRows.length;
+      const clearedMainText = formatJoycrewRows_(clearedMainRows);
+
+      if (existingRowsById[id]) {
+        alreadyExistsCount += 1;
+        results.push([existingRowsById[id], id, `${actionLabel} 목록에 이미 있음`, `${existingRowsById[id]}행`, clearedMainText]);
+        return;
+      }
+
+      let targetRow = blankRows.shift();
+      if (!targetRow) {
+        const currentRows = targetSheet.getMaxRows();
+        targetSheet.insertRowsAfter(currentRows, 1);
+        targetRow = currentRows + 1;
+      }
+
+      targetSheet.getRange(targetRow, targetColumn).setValue(id);
+      existingRowsById[id] = targetRow;
+      updatedCount += 1;
+      results.push([targetRow, id, `${actionLabel} 입력 완료`, '', clearedMainText]);
+    });
+
+    summaryLines.push(`${actionLabel}: 파싱 ${group.ids.length}건, 입력 완료 ${updatedCount}건, 이미 있음 ${alreadyExistsCount}건`);
+  });
+
+  unparsedLines.forEach(line => {
+    results.push(['', line, '아이디를 찾지 못함 - 건너뜀', '', '']);
   });
 
   const resultSheet = getOrCreateSheet_(spreadsheet, resultSheetName);
@@ -269,16 +303,67 @@ function applyJoycrewAccountList_(inputSheetName, resultSheetName, fixedAction) 
   resultSheet.autoResizeColumns(1, 5);
 
   SpreadsheetApp.getUi().alert(
-    [
-      `대상 시트: ${targetSheet.getName()}`,
-      `작업: ${actionLabel}`,
-      `파싱: ${parsed.ids.length}건`,
-      `입력 완료: ${updatedCount}건`,
-      `이미 있음: ${alreadyExistsCount}건`,
-      `A열 비움: ${clearedMainCount}건`,
-      `자세한 내용은 ${resultSheetName} 시트를 확인해주세요.`,
-    ].join('\n')
+    [`대상 시트: ${targetSheet.getName()}`]
+      .concat(summaryLines)
+      .concat([`A열 비움: ${clearedMainCount}건`])
+      .concat(unparsedLines.length > 0 ? [`아이디를 찾지 못한 줄: ${unparsedLines.length}건`] : [])
+      .concat([`자세한 내용은 ${resultSheetName} 시트를 확인해주세요.`])
+      .join('\n')
   );
+}
+
+/**
+ * 정기퇴장 공지 원문을 읽습니다.
+ * - "@266.라미 __myharammin", "@233.꼬물이/_kkomuri"처럼 번호·닉네임 뒤에 오는 마지막 영문 아이디를 사용합니다.
+ * - "https://www.instagram.com/아이디" 줄도 읽습니다.
+ * - 같은 줄에 "*6개월 미만"이 있으면 언팔 대상으로 분류합니다.
+ */
+function parseJoycrewRetireList_(text) {
+  const order = [];
+  const shortTermById = {};
+  const unparsedLines = [];
+  let duplicateCount = 0;
+
+  String(text || '').split(/\r?\n/).forEach(line => {
+    const isShortTerm = /6\s*개월\s*미만/.test(line);
+    const body = line.replace(/\*.*$/, '').trim();
+    if (!body) return;
+
+    const urlMatch = body.match(/instagram\.com\/([A-Za-z0-9._]+)/i);
+    const isAccountLine = body.charAt(0) === '@';
+    let id = '';
+
+    if (urlMatch) {
+      id = normalizeJoycrewId_(urlMatch[1]);
+    } else if (isAccountLine || /^[A-Za-z0-9._]+$/.test(body)) {
+      const tailMatch = body.match(/([A-Za-z0-9._]+)$/);
+      id = tailMatch ? normalizeJoycrewId_(tailMatch[1]) : '';
+      // "@266." 처럼 번호만 남은 경우는 아이디가 아닙니다.
+      if (/^\d+\.?$/.test(id)) id = '';
+    } else {
+      return; // 제목, 구분선 등
+    }
+
+    if (!id) {
+      unparsedLines.push(line.trim());
+      return;
+    }
+
+    if (id in shortTermById) {
+      duplicateCount += 1;
+    } else {
+      order.push(id);
+      shortTermById[id] = false;
+    }
+    if (isShortTerm) shortTermById[id] = true;
+  });
+
+  return {
+    retireIds: order.filter(id => !shortTermById[id]),
+    unfollowIds: order.filter(id => shortTermById[id]),
+    unparsedLines,
+    duplicateCount,
+  };
 }
 
 function parseJoycrewEntrants_(text) {
